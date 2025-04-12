@@ -126,17 +126,6 @@ export class NamespacedDatabaseManager {
     return this._entityDatabaseMap.values();
   }
 
-  public getDatabaseValues<T extends DatabaseTypes>(type: T): MapIterator<DatabaseTypeMap[T]> {
-    if (type === DatabaseTypes.Block) {
-      return this.blockDatabaseValues() as MapIterator<DatabaseTypeMap[T]>;
-    } else if (type === DatabaseTypes.Entity) {
-      return this.entityDatabaseValues() as MapIterator<DatabaseTypeMap[T]>;
-    } else if (type === DatabaseTypes.Item) {
-      return this.itemDatabaseValues() as MapIterator<DatabaseTypeMap[T]>;
-    }
-    return undefined;
-  }
-
   public getAllDatabaseValues() {
     return [...this.blockDatabaseValues(), ...this.entityDatabaseValues(), ...this.itemDatabaseValues(), this._worldDatabase];
   }

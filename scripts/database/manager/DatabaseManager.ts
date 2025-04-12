@@ -114,36 +114,6 @@ export class DatabaseManager {
     }
   }
 
-  // public* flushData(type: DatabaseTypes): Generator<void, void, void> {
-  //   const managerValues = this._databaseManagerMap.values();
-  //   for (const manager of managerValues) {
-  //     const databaseValues = manager.getDatabaseValues(type);
-  //     if (type === DatabaseTypes.World) {
-  //       yield* this.flushDatabase(manager.getWorldDatabase());
-  //     } else {
-  //       for (const database of databaseValues) {
-  //         yield* this.flushDatabase(database);
-  //       }
-  //     }
-  //   }
-  // }
-  //
-  // public flushWorldData() {
-  //   system.runJob(this.flushData(DatabaseTypes.World));
-  // }
-  //
-  // public flushBlockData() {
-  //   system.runJob(this.flushData(DatabaseTypes.Block));
-  // }
-  //
-  // public flushEntityData() {
-  //   system.runJob(this.flushData(DatabaseTypes.Entity));
-  // }
-  //
-  // public flushItemData() {
-  //   system.runJob(this.flushData(DatabaseTypes.Item));
-  // }
-
   public flush() {
     system.runJob(this.flushAllDataGenerator());
   }
