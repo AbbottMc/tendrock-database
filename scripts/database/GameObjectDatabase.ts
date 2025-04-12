@@ -15,7 +15,9 @@ export abstract class GameObjectDatabase<GO extends (DimensionLocation | ItemSta
 
   public abstract getGameObject(): GO;
 
-  public abstract saveData(identifier: string, value: TendrockDynamicPropertyValue): void;
+  public _saveData(runtimeId: string, identifier: string, value: TendrockDynamicPropertyValue): void {
+    this._assertInvokedByTendrock(runtimeId);
+  }
 
   protected _markDirty(identifier: string) {
     const dirtyIdList = this.isFlushing() ? this._dirtyDataIdBuffer : this._dirtyDataIdList;

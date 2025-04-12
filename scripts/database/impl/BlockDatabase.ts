@@ -11,7 +11,7 @@ export class BlockDatabase extends GameObjectDatabase<Block> {
     this._lid = Utils.getLocationId(block);
     if (initialIdList) {
       initialIdList.forEach(id => {
-        const value = this._dynamicProperty.getFromBlock(this._lid, id);
+        const value = Utils.deserializeData(this._dynamicProperty.getFromBlock(this._lid, id));
         this._dataMap.set(id, value);
       });
     }
@@ -25,7 +25,8 @@ export class BlockDatabase extends GameObjectDatabase<Block> {
     return this.block;
   }
 
-  public saveData(identifier: string, value: TendrockDynamicPropertyValue) {
+  public _saveData(runtimeId: string, identifier: string, value: TendrockDynamicPropertyValue) {
+    super._saveData(runtimeId, identifier, value);
     this._dynamicProperty.putToBlock(this._lid, identifier, value);
   }
 }

@@ -4,20 +4,11 @@ import {EntityDatabase} from "../impl/EntityDatabase";
 import {ItemStackDatabase} from "../impl/ItemStackDatabase";
 import {WorldDatabase} from "../impl/WorldDatabase";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
-import {DatabaseTypes} from "../DatabaseTypes";
 
 export type DatabaseTypeBy<T> = T extends Block ? BlockDatabase : T extends Entity ? EntityDatabase : T extends ItemStack ? ItemStackDatabase : WorldDatabase;
 export type DatabaseFactory<T extends Block | Entity | ItemStack | World> = {
-  // create(namespace: string, initialIdList?: string[]): InstanceType<DatabaseFactory<T>>;
   create(namespace: string, options: { gameObject?: T, initialIdList?: string[] }): InstanceType<DatabaseFactory<T>>;
 } & (new (...args: any[]) => any);
-
-type DatabaseTypeMap = {
-  [DatabaseTypes.Block]: BlockDatabase;
-  [DatabaseTypes.Entity]: EntityDatabase;
-  [DatabaseTypes.Item]: ItemStackDatabase;
-  [DatabaseTypes.World]: WorldDatabase;
-}
 
 export class NamespacedDatabaseManager {
   private _blockDatabaseMap = new Map<string, BlockDatabase>();
@@ -77,7 +68,7 @@ export class NamespacedDatabaseManager {
         const databaseType = ItemStackDatabase as DatabaseFactory<T>;
         return {uniqueId, databaseMap, databaseType};
       } else {
-        throw new Error(`Invalid gameObject type: ${typeof gameObject}`);
+        throw new Error(`Invalid game object type.`);
       }
     } else {
       const databaseType = WorldDatabase as DatabaseFactory<T>;
@@ -126,11 +117,11 @@ export class NamespacedDatabaseManager {
     return this._entityDatabaseMap.values();
   }
 
-  public getAllDatabaseValues() {
-    return [...this.blockDatabaseValues(), ...this.entityDatabaseValues(), ...this.itemDatabaseValues(), this._worldDatabase];
-  }
-
   public getWorldDatabase() {
     return this._worldDatabase;
+  }
+
+  public getAllDatabaseValues() {
+    return [...this.blockDatabaseValues(), ...this.entityDatabaseValues(), ...this.itemDatabaseValues(), this.getWorldDatabase()];
   }
 }

@@ -1,7 +1,7 @@
 import {Block, Entity, ItemStack, Vector3, world} from "@minecraft/server";
 import {Utils} from "./helper/Utils";
 
-export type DynamicPropertyValue = boolean | number | string | Vector3;
+export type DynamicPropertyValue = boolean | number | string | Vector3 | undefined;
 export type DynamicPropertyObjectValue = { [key: string]: DynamicPropertyValue | DynamicPropertyObjectValue }
 export type TendrockDynamicPropertyValue = DynamicPropertyValue | DynamicPropertyObjectValue;
 

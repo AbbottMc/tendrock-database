@@ -17,16 +17,4 @@ export class UniqueIdUtils {
   public static getEntityUniqueId(entity: Entity) {
     return entity.id;
   }
-
-  public static getUniqueId(gameObject: Block | Entity | ItemStack) {
-    if (gameObject instanceof Block) {
-      return this.getBlockUniqueId(gameObject);
-    } else if (gameObject instanceof Entity) {
-      return this.getEntityUniqueId(gameObject);
-    } else if (gameObject instanceof ItemStack) {
-      return this.getItemUniqueId(gameObject);
-    } else {
-      throw new Error(`Invalid gameObject type: ${typeof gameObject}`);
-    }
-  }
 }

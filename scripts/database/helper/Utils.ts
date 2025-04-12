@@ -35,6 +35,7 @@ export class Utils {
   }
 
   public static serializeData(value: TendrockDynamicPropertyValue): DynamicPropertyValue {
+    if (value === undefined) return undefined;
     if (this.isVector3(value)) {
       return value;
     }
@@ -54,10 +55,6 @@ export class Utils {
     } else {
       return value as TendrockDynamicPropertyValue;
     }
-  }
-
-  public static isBlockDataIdentifier(identifier: string) {
-    return identifier.split('-').length === 3;
   }
 
   private static parseDataIdentifier(identifier: string) {

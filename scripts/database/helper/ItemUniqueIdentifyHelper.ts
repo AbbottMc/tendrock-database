@@ -19,6 +19,7 @@ export class ItemUniqueIdentifyHelper {
   protected initUniqueNumberWhenWorldLoad() {
     world.afterEvents.worldLoad.subscribe(() => {
       this._uniqueNumber = world.getDynamicProperty(this._uniqueNumPropertyName) as number ?? 0;
+      this._isWorldLoaded = true;
     });
   }
 

@@ -70,7 +70,7 @@ export class DatabaseManager {
         break;
       }
       const value = database.get(identifier);
-      database.saveData(identifier, value);
+      database._saveData(UniqueIdUtils.RuntimeId, identifier, value);
       yield;
     }
     database._endFlush(UniqueIdUtils.RuntimeId);
@@ -84,7 +84,7 @@ export class DatabaseManager {
         break;
       }
       const value = database.get(identifier);
-      database.saveData(identifier, value);
+      database._saveData(UniqueIdUtils.RuntimeId, identifier, value);
     }
     database._endFlush(UniqueIdUtils.RuntimeId);
   }
