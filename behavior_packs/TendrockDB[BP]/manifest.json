@@ -1,0 +1,38 @@
+{
+  "format_version": 2,
+  "header": {
+    "description": "Tendrock IPC",
+    "name": "Tendrock DB 测试用包 - 行为包",
+    "uuid": "a1b2c3d4-e5f6-4a3b-8c9d-0e1f2a3b4c5d",
+    "version": [0, 1, 0],
+    "min_engine_version": [1, 21, 50]
+  },
+  "modules": [
+    {
+      "description": "Behavior Pack Module",
+      "type": "data",
+      "uuid": "b2c3d4e5-f6a7-4b3c-9d0e-1f2a3b4c5d6e",
+      "version": [0, 1, 0]
+    }, {
+      "description": "Script API Module Dev",
+      "type": "script",
+      "language": "javascript",
+      "uuid": "c3d4e5f6-a7b8-4c3d-9e0f-1a2b3c4d5e6f",
+      "version": [0, 1, 0],
+      "entry": "scripts/Main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.0.0-beta"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "2.0.0-beta"
+    }
+  ],
+  "metadata": {
+    "authors": ["乾山瑶"]
+  }
+}
