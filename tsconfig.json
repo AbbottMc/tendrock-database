@@ -2,21 +2,18 @@
   "compilerOptions": {
     "lib": ["ES6", "ES2021", "ES2022"],
     "strict": true,
-    "target": "es2020",
-    "outDir": "lib",
-    "composite": false,
+    "noImplicitAny": true,
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "module": "esnext",
+    "target": "es6",
+    "outDir": "dist",
+    "sourceMap": false,
     "declaration": true,
-    "declarationMap": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "inlineSources": false,
-    "isolatedModules": true,
-    "moduleResolution": "node",
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "preserveWatchOutput": true,
-    "skipLibCheck": true,
-    "sourceMap": false
+    "incremental": false,
+    "declarationDir": "types/generated",
+    "allowJs": true
   },
   "include": [
     "./scripts"

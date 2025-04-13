@@ -1,8 +1,5 @@
 import {Block, Entity, ItemStack, world, World} from "@minecraft/server";
-import {BlockDatabase} from "../impl/BlockDatabase";
-import {EntityDatabase} from "../impl/EntityDatabase";
-import {ItemStackDatabase} from "../impl/ItemStackDatabase";
-import {WorldDatabase} from "../impl/WorldDatabase";
+import {BlockDatabase, EntityDatabase, ItemStackDatabase, WorldDatabase} from "../impl";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
 import {GameObjectDatabase} from "../GameObjectDatabase";
 

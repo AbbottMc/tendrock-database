@@ -1,0 +1,32 @@
+import { NamespacedDynamicProperty, TendrockDynamicPropertyValue } from "./NamespacedDynamicProperty";
+import { Block, Entity, ItemStack, World } from "@minecraft/server";
+import { NamespacedDatabaseManager } from "./manager/NamespacedDatabaseManager";
+export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
+    readonly namespace: string;
+    protected readonly manager: NamespacedDatabaseManager;
+    protected _dynamicProperty: NamespacedDynamicProperty;
+    protected _dataMap: Map<string, TendrockDynamicPropertyValue>;
+    protected _dirtyDataIdList: string[];
+    protected _dirtyDataIdBuffer: string[];
+    protected _isFlushing: boolean;
+    protected _uid: string;
+    protected constructor(namespace: string, manager: NamespacedDatabaseManager);
+    abstract getGameObject(): GO;
+    abstract _saveData(runtimeId: string, identifier: string, value: TendrockDynamicPropertyValue): void;
+    protected _markDirty(identifier: string): void;
+    getUid(): string;
+    set(identifier: string, value: TendrockDynamicPropertyValue): void;
+    get(identifier: string): TendrockDynamicPropertyValue;
+    delete(identifier: string): void;
+    forEach(callback: (identifier: string, value: TendrockDynamicPropertyValue) => void): void;
+    size(): number;
+    entries(): MapIterator<[string, TendrockDynamicPropertyValue]>;
+    keys(): MapIterator<string>;
+    values(): MapIterator<TendrockDynamicPropertyValue>;
+    isFlushing(): boolean;
+    clear(): void;
+    protected _assertInvokedByTendrock(runtimeId: string): void;
+    _beginFlush(runtimeId: string): void;
+    _endFlush(runtimeId: string): void;
+    _getDirtyDataIdList(runtimeId: string): string[];
+}

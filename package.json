@@ -1,7 +1,7 @@
 {
   "name": "@tendrock/database",
-  "version": "0.1.0-alpha",
-  "description": "A database lib under the Tendrock system for Minecraft Bedrock Edition Script API",
+  "version": "0.1.0-alpha.0",
+  "description": "A database lib under the Tendrock ecosystem for Minecraft Bedrock Edition Script API",
   "main": "dist/index.js",
   "scripts": {
     "test": "just-scripts test",
@@ -9,12 +9,21 @@
     "deploy-scripts": "just-scripts deploy-scripts",
     "clean": "just-scripts clean",
     "dev": "just-scripts dev",
-    "dev-no-scripts": "just-scripts dev-no-scripts"
+    "dev-no-scripts": "just-scripts dev-no-scripts",
+    "tsc": "tsc",
+    "publish-latest": "npm publish --access public --tag latest"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AbbottMc/tendrock-db.git"
+    "url": "git+https://github.com/AbbottMc/tendrock-database.git"
   },
+  "files": [
+    "dist",
+    "types/generated",
+    "tsconfig.json",
+    "!**/*.test.*",
+    "!**/test/**"
+  ],
   "keywords": [
     "Minecraft",
     "Bedrock",
@@ -28,9 +37,9 @@
   "author": "QianShanyao",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/AbbottMc/tendrock-db/issues"
+    "url": "https://github.com/AbbottMc/tendrock-database/issues"
   },
-  "homepage": "https://github.com/AbbottMc/tendrock-db#readme",
+  "homepage": "https://github.com/AbbottMc/tendrock-database#readme",
   "devDependencies": {
     "@babel/core": "^7.17.10",
     "@babel/plugin-transform-runtime": "^7.17.10",
@@ -54,5 +63,8 @@
     "uglify-js": "^3.15.5",
     "webpack": "5.94.0",
     "webpack-cli": "^4.9.2"
+  },
+  "peerDependencies": {
+    "@minecraft/server": "^2.0.0-beta.1.21.70-stable"
   }
 }

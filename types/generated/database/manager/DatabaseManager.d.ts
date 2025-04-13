@@ -1,0 +1,32 @@
+import { Block, Entity, ItemStack, World } from "@minecraft/server";
+import { GameObjectDatabase } from "../GameObjectDatabase";
+import { DatabaseTypeBy } from "./NamespacedDatabaseManager";
+import { TendrockDynamicPropertyValue } from "../NamespacedDynamicProperty";
+export declare class DatabaseManager {
+    private _databaseManagerMap;
+    private _isInitialized;
+    private _whenReadyCallbackList;
+    private _flushInterval;
+    private _autoFlushTaskId;
+    constructor();
+    private _loadAndParseWorldDynamicPropertiesGenerator;
+    private _loadWorldDynamicProperties;
+    private _loadWorldDynamicPropertiesWhenWorldLoaded;
+    private _getOrCreateNamespacedManager;
+    private _doReady;
+    whenReady(callback: () => void): (() => void) | undefined;
+    isReady(): boolean;
+    getOrCreate<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T>;
+    setData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string, value: TendrockDynamicPropertyValue): void;
+    getData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string): TendrockDynamicPropertyValue;
+    remove<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, clearData?: boolean): void;
+    setFlushInterval(interval: number, flush?: boolean): void;
+    protected flushDatabase(database: GameObjectDatabase<any>): Generator<void, void, void>;
+    protected flushDatabaseSync(database: GameObjectDatabase<any>): void;
+    protected flushAllDataGenerator(): Generator<void, void, void>;
+    flushSync(): void;
+    flush(): void;
+    protected _startFlushWhenPlayerLeaveTask(): void;
+    protected _startAutoFlushTask(): void;
+}
+export declare const databaseManager: DatabaseManager;
