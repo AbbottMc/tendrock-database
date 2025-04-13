@@ -1,5 +1,4 @@
 import {Dimension, DimensionLocation, system, Vector3} from "@minecraft/server";
-import {MinecraftDimensionTypes} from "@minecraft/vanilla-data";
 import {
   DynamicPropertyValue, NamespacedDynamicProperty, TendrockDynamicPropertyValue
 } from "../NamespacedDynamicProperty";
@@ -13,11 +12,11 @@ export interface IdentifierParseResult {
 export class Utils {
   public static getDimensionShortName(dimension: Dimension) {
     switch (dimension.id) {
-      case MinecraftDimensionTypes.Overworld :
+      case "minecraft:overworld" :
         return 'o';
-      case MinecraftDimensionTypes.Nether:
+      case "minecraft:nether":
         return 'n';
-      case MinecraftDimensionTypes.TheEnd:
+      case "minecraft:the_end":
         return 'e';
     }
     return undefined;

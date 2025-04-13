@@ -115,7 +115,7 @@ export class DatabaseManager {
       database._saveData(UniqueIdUtils.RuntimeId, identifier, value);
       yield;
     }
-    console.log(`flush ${database._getDirtyDataIdList(UniqueIdUtils.RuntimeId).length} data`);
+    // console.log(`flush ${database._getDirtyDataIdList(UniqueIdUtils.RuntimeId).length} data`);
     database._endFlush(UniqueIdUtils.RuntimeId);
   }
 

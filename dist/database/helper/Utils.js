@@ -19,16 +19,15 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 import { system } from "@minecraft/server";
-import { MinecraftDimensionTypes } from "@minecraft/vanilla-data";
 import { NamespacedDynamicProperty } from "../NamespacedDynamicProperty";
 export class Utils {
     static getDimensionShortName(dimension) {
         switch (dimension.id) {
-            case MinecraftDimensionTypes.Overworld:
+            case "minecraft:overworld":
                 return 'o';
-            case MinecraftDimensionTypes.Nether:
+            case "minecraft:nether":
                 return 'n';
-            case MinecraftDimensionTypes.TheEnd:
+            case "minecraft:the_end":
                 return 'e';
         }
         return undefined;

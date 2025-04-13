@@ -1,6 +1,6 @@
 {
   "name": "@tendrock/database",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "A database lib under the Tendrock ecosystem for Minecraft Bedrock Edition Script API",
   "main": "dist/index.js",
   "scripts": {
@@ -46,7 +46,6 @@
     "@babel/preset-env": "^7.17.10",
     "@minecraft/server": "^2.0.0-beta.1.21.80-preview.27",
     "@minecraft/server-ui": "^2.0.0-beta.1.21.80-preview.27",
-    "@minecraft/vanilla-data": "^1.21.50",
     "@types/node": "^22.10.5",
     "babel-core": "^6.26.3",
     "babel-loader": "^8.2.5",
