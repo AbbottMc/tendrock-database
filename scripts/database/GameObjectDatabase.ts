@@ -1,29 +1,34 @@
 import {NamespacedDynamicProperty, TendrockDynamicPropertyValue} from "./NamespacedDynamicProperty";
-import {DimensionLocation, Entity, ItemStack, World} from "@minecraft/server";
+import {Block, Entity, ItemStack, World} from "@minecraft/server";
 import {UniqueIdUtils} from "./helper/UniqueIdUtils";
+import {NamespacedDatabaseManager} from "./manager/NamespacedDatabaseManager";
 
-export abstract class GameObjectDatabase<GO extends (DimensionLocation | ItemStack | Entity | World)> {
+export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
   protected _dynamicProperty: NamespacedDynamicProperty;
   protected _dataMap: Map<string, TendrockDynamicPropertyValue> = new Map<string, TendrockDynamicPropertyValue>();
   protected _dirtyDataIdList: string[] = [];
   protected _dirtyDataIdBuffer: string[] = [];
   protected _isFlushing = false;
+  protected _uid: string = '';
 
-  protected constructor(public readonly namespace: string) {
+  protected constructor(public readonly namespace: string, protected readonly manager: NamespacedDatabaseManager) {
     this._dynamicProperty = NamespacedDynamicProperty.create(namespace);
   }
 
   public abstract getGameObject(): GO;
 
-  public _saveData(runtimeId: string, identifier: string, value: TendrockDynamicPropertyValue): void {
-    this._assertInvokedByTendrock(runtimeId);
-  }
+  public abstract _saveData(runtimeId: string, identifier: string, value: TendrockDynamicPropertyValue): void;
 
   protected _markDirty(identifier: string) {
     const dirtyIdList = this.isFlushing() ? this._dirtyDataIdBuffer : this._dirtyDataIdList;
     if (!dirtyIdList.includes(identifier)) {
       dirtyIdList.push(identifier);
     }
+    this.manager._markDirty(UniqueIdUtils.RuntimeId, this);
+  }
+
+  public getUid() {
+    return this._uid;
   }
 
   public set(identifier: string, value: TendrockDynamicPropertyValue) {
@@ -41,7 +46,7 @@ export abstract class GameObjectDatabase<GO extends (DimensionLocation | ItemSta
   }
 
   public forEach(callback: (identifier: string, value: TendrockDynamicPropertyValue) => void) {
-    this._dataMap.forEach(callback);
+    this._dataMap.forEach((value, key) => callback(key, value));
   }
 
   public size() {
@@ -65,14 +70,13 @@ export abstract class GameObjectDatabase<GO extends (DimensionLocation | ItemSta
   }
 
   public clear() {
-    if (this.isFlushing()) {
-      this._dirtyDataIdBuffer = Array.from(this._dataMap.keys());
-      this._dirtyDataIdList = [];
-    } else {
-      this._dirtyDataIdList = Array.from(this._dataMap.keys());
-      this._dirtyDataIdBuffer = [];
-    }
+    const dataIdList = Array.from(this._dataMap.keys());
     this._dataMap.clear();
+    this._dirtyDataIdList = [];
+    this._dirtyDataIdBuffer = [];
+    dataIdList.forEach((identifier) => {
+      this._saveData(UniqueIdUtils.RuntimeId, identifier, undefined);
+    });
   }
 
   protected _assertInvokedByTendrock(runtimeId: string) {

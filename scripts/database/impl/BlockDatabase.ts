@@ -2,23 +2,23 @@ import {GameObjectDatabase} from "../GameObjectDatabase";
 import {Block} from "@minecraft/server";
 import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
 import {Utils} from "../helper/Utils";
+import {UniqueIdUtils} from "../helper/UniqueIdUtils";
+import {NamespacedDatabaseManager} from "../manager/NamespacedDatabaseManager";
 
 export class BlockDatabase extends GameObjectDatabase<Block> {
-  private readonly _lid: string;
-
-  constructor(namespace: string, protected readonly block: Block, initialIdList?: string[]) {
-    super(namespace);
-    this._lid = Utils.getLocationId(block);
+  constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly block: Block, initialIdList?: string[]) {
+    super(namespace, manager);
+    this._uid = UniqueIdUtils.getBlockUniqueId(block);
     if (initialIdList) {
       initialIdList.forEach(id => {
-        const value = Utils.deserializeData(this._dynamicProperty.getFromBlock(this._lid, id));
+        const value = Utils.deserializeData(this._dynamicProperty.getFromBlock(this._uid, id));
         this._dataMap.set(id, value);
       });
     }
   }
 
-  public static create(namespace: string, options: { gameObject: Block, initialIdList: string[] }) {
-    return new BlockDatabase(namespace, options.gameObject, options.initialIdList);
+  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: Block, initialIdList: string[]) {
+    return new BlockDatabase(namespace, manager, gameObject, initialIdList);
   }
 
   public getGameObject(): Block {
@@ -26,7 +26,7 @@ export class BlockDatabase extends GameObjectDatabase<Block> {
   }
 
   public _saveData(runtimeId: string, identifier: string, value: TendrockDynamicPropertyValue) {
-    super._saveData(runtimeId, identifier, value);
-    this._dynamicProperty.putToBlock(this._lid, identifier, value);
+    this._assertInvokedByTendrock(runtimeId);
+    this._dynamicProperty.putToBlock(this._uid, identifier, value);
   }
 }

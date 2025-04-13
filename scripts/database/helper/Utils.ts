@@ -40,7 +40,7 @@ export class Utils {
       return value;
     }
     const valueType = typeof value;
-    if (value === 'object') {
+    if (valueType === 'object') {
       return '[tendrock object]' + JSON.stringify(value);
     } else if (valueType === 'string' || valueType === 'number' || valueType === 'boolean') {
       return value as DynamicPropertyValue;

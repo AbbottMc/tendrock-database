@@ -2,10 +2,13 @@ import {GameObjectDatabase} from "../GameObjectDatabase";
 import {Entity} from "@minecraft/server";
 import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
 import {Utils} from "../helper/Utils";
+import {UniqueIdUtils} from "../helper/UniqueIdUtils";
+import {NamespacedDatabaseManager} from "../manager/NamespacedDatabaseManager";
 
 export class EntityDatabase extends GameObjectDatabase<Entity> {
-  constructor(namespace: string, protected readonly entity: Entity) {
-    super(namespace);
+  constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly entity: Entity) {
+    super(namespace, manager);
+    this._uid = UniqueIdUtils.getEntityUniqueId(entity);
     this.entity.getDynamicPropertyIds().forEach((identifier) => {
       const id = this._dynamicProperty.extractDataIdentifier(identifier);
       const value = Utils.deserializeData(this.entity.getDynamicProperty(id));
@@ -13,8 +16,8 @@ export class EntityDatabase extends GameObjectDatabase<Entity> {
     });
   }
 
-  public static create(namespace: string, options: { gameObject: Entity }) {
-    return new EntityDatabase(namespace, options.gameObject);
+  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: Entity) {
+    return new EntityDatabase(namespace, manager, gameObject);
   }
 
   public getGameObject(): Entity {
@@ -22,7 +25,7 @@ export class EntityDatabase extends GameObjectDatabase<Entity> {
   }
 
   public _saveData(runtimeId: string, identifier: string, value: TendrockDynamicPropertyValue) {
-    super._saveData(runtimeId, identifier, value);
+    this._assertInvokedByTendrock(runtimeId);
     this._dynamicProperty.putToEntity(this.entity, identifier, value);
   }
 }

@@ -1,15 +1,15 @@
-import {Block, Entity, ItemStack, system, world} from "@minecraft/server";
-import {WorldDatabase} from "../impl/WorldDatabase";
+import {Block, Entity, ItemStack, system, World, world} from "@minecraft/server";
 import {GameObjectDatabase} from "../GameObjectDatabase";
 import {DatabaseTypeBy, NamespacedDatabaseManager} from "./NamespacedDatabaseManager";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
 import {Utils} from "../helper/Utils";
+import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
 
 
 export class DatabaseManager {
   private _databaseManagerMap = new Map<string, NamespacedDatabaseManager>();
-  private _isLoadingWorldDynamicProperties = false;
   private _isInitialized = false;
+  private _whenReadyCallbackList = new Array<() => void>();
 
   constructor() {
     this._startFlushWhenPlayerLeaveTask();
@@ -28,14 +28,13 @@ export class DatabaseManager {
       }
       yield;
     }
-    this._isLoadingWorldDynamicProperties = false;
   }
 
   private async _loadWorldDynamicProperties() {
-    this._isLoadingWorldDynamicProperties = true;
     await Utils.runJob(this._loadAndParseWorldDynamicPropertiesGenerator());
     this._isInitialized = true;
     this._startAutoFlushTask();
+    this._doReady();
   }
 
   private _loadWorldDynamicPropertiesWhenWorldLoaded() {
@@ -54,11 +53,44 @@ export class DatabaseManager {
     return databaseManager;
   }
 
-  public getOrCreate(namespace: string): WorldDatabase;
-  public getOrCreate<T extends Block | Entity | ItemStack>(namespace: string, gameObject: T): DatabaseTypeBy<T>;
-  public getOrCreate<T extends Block | Entity | ItemStack>(namespace: string, gameObject?: T): DatabaseTypeBy<T> {
+  private _doReady() {
+    this._whenReadyCallbackList.forEach(callback => callback());
+    this._whenReadyCallbackList = [];
+  }
+
+  public whenReady(callback: () => void): (() => void) | undefined {
+    if (this._isInitialized) {
+      callback();
+      return undefined;
+    }
+    this._whenReadyCallbackList.push(callback);
+    return () => {
+      this._whenReadyCallbackList.splice(this._whenReadyCallbackList.indexOf(callback), 1);
+    };
+  }
+
+  public isReady() {
+    return this._isInitialized;
+  }
+
+  public getOrCreate<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T> {
     const databaseManager = this._getOrCreateNamespacedManager(namespace);
     return databaseManager.getOrCreate(gameObject);
+  }
+
+  public setData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string, value: TendrockDynamicPropertyValue) {
+    const database = this.getOrCreate(namespace, gameObject);
+    database.set(identifier, value);
+  }
+
+  public getData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string): TendrockDynamicPropertyValue {
+    const database = this.getOrCreate(namespace, gameObject);
+    return database.get(identifier);
+  }
+
+  public remove<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, clearData = false): void {
+    const databaseManager = this._getOrCreateNamespacedManager(namespace);
+    databaseManager.remove(gameObject, clearData);
   }
 
   protected* flushDatabase(database: GameObjectDatabase<any>): Generator<void, void, void> {
@@ -73,6 +105,7 @@ export class DatabaseManager {
       database._saveData(UniqueIdUtils.RuntimeId, identifier, value);
       yield;
     }
+    console.log(`flush ${database._getDirtyDataIdList(UniqueIdUtils.RuntimeId).length} data`);
     database._endFlush(UniqueIdUtils.RuntimeId);
   }
 
@@ -92,25 +125,29 @@ export class DatabaseManager {
   protected* flushAllDataGenerator(): Generator<void, void, void> {
     const managerValues = this._databaseManagerMap.values();
     for (const manager of managerValues) {
-      const databaseValues = manager.getAllDatabaseValues();
+      manager._beginFlush(UniqueIdUtils.RuntimeId);
+      const databaseValues = manager.getDirtyDatabaseList();
       if (databaseValues.length > 0) {
         for (const database of databaseValues) {
           yield* this.flushDatabase(database);
         }
       }
+      manager._endFlush(UniqueIdUtils.RuntimeId);
     }
   }
 
   public flushSync() {
     const managerValues = this._databaseManagerMap.values();
     for (const manager of managerValues) {
-      const databaseValues = manager.getAllDatabaseValues();
+      manager._beginFlush(UniqueIdUtils.RuntimeId);
+      const databaseValues = manager.getDirtyDatabaseList();
       if (databaseValues.length <= 0) {
         continue;
       }
       for (const database of databaseValues) {
         this.flushDatabaseSync(database);
       }
+      manager._endFlush(UniqueIdUtils.RuntimeId);
     }
   }
 
@@ -120,7 +157,6 @@ export class DatabaseManager {
 
   protected _startFlushWhenPlayerLeaveTask() {
     world.beforeEvents.playerLeave.subscribe(({player}) => {
-      console.log(world.getAllPlayers().length);
       if (world.getAllPlayers().length === 1) {
         this.flushSync();
       } else {
@@ -134,7 +170,7 @@ export class DatabaseManager {
   protected _startAutoFlushTask() {
     system.runInterval(() => {
       this.flush();
-    }, 3 * 60 * 20);
+    }, 3 * 20);
   }
 }
 
