@@ -9,9 +9,10 @@ export class ItemStackDatabase extends GameObjectDatabase<ItemStack> {
   constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly itemStack: ItemStack) {
     super(namespace, manager);
     this._uid = UniqueIdUtils.getItemUniqueId(itemStack);
-    this.itemStack.getDynamicPropertyIds().forEach((identifier) => {
-      const id = this._dynamicProperty.extractDataIdentifier(identifier);
-      const value = Utils.deserializeData(this.itemStack.getDynamicProperty(id));
+    this.itemStack.getDynamicPropertyIds().forEach((propertyId) => {
+      if (!this._dynamicProperty.validateDataIdentifier(propertyId)) return;
+      const id = this._dynamicProperty.extractDataIdentifier(propertyId);
+      const value = Utils.deserializeData(this.itemStack.getDynamicProperty(propertyId));
       this._dataMap.set(id, value);
     });
   }

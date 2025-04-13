@@ -1,23 +1,23 @@
 import {GameObjectDatabase} from "../GameObjectDatabase";
-import {Block} from "@minecraft/server";
+import {Block, world} from "@minecraft/server";
 import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
 import {Utils} from "../helper/Utils";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
 import {NamespacedDatabaseManager} from "../manager/NamespacedDatabaseManager";
 
 export class BlockDatabase extends GameObjectDatabase<Block> {
-  constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly block: Block, initialIdList?: string[]) {
+  constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly block: Block, initialIdList?: [string, string][]) {
     super(namespace, manager);
     this._uid = UniqueIdUtils.getBlockUniqueId(block);
     if (initialIdList) {
-      initialIdList.forEach(id => {
-        const value = Utils.deserializeData(this._dynamicProperty.getFromBlock(this._uid, id));
-        this._dataMap.set(id, value);
+      initialIdList.forEach(([propertyId, dataId]) => {
+        const value = Utils.deserializeData(world.getDynamicProperty(propertyId));
+        this._dataMap.set(dataId, value);
       });
     }
   }
 
-  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: Block, initialIdList: string[]) {
+  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: Block, initialIdList: [string, string][]) {
     return new BlockDatabase(namespace, manager, gameObject, initialIdList);
   }
 

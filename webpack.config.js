@@ -6,21 +6,10 @@ const scriptOutputFolderName = envHelpers.getScriptOutputFolderName();
 const scriptEntry = envHelpers.getScriptEntry();
 const projectName = envHelpers.getProjectName();
 
-const libConfig = {
-  // all options under `output.library` can be used here
-  // name: 'vanilla-data',
-  type: 'module',
-  // umdNamedDefine: true,
-};
-
 module.exports = {
   mode: "none",
   entry: {
-    Main: `./${scriptEntry}`,
-    'vanilla_data': {
-      import: './node_modules/@minecraft/vanilla-data/lib/index.js',
-      library: libConfig
-    }
+    Main: `./${scriptEntry}`
   },
   output: {
     filename: '[name].js',
@@ -32,8 +21,7 @@ module.exports = {
   externalsType: "module",
   externals: {
     "@minecraft/server": "@minecraft/server",
-    "@minecraft/server-ui": "@minecraft/server-ui",
-    "@minecraft/vanilla-data": "./vanilla_data"
+    "@minecraft/server-ui": "@minecraft/server-ui"
   },
   optimization: {
     minimize: false,
@@ -53,7 +41,7 @@ module.exports = {
         },
       }),
     ],
-    usedExports: true, // 表示输出结果中只导出那些在外部使用了的成员
+    usedExports: true,
   },
   module: {
     rules: [

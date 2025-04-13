@@ -5,18 +5,18 @@ import {Utils} from "../helper/Utils";
 import {NamespacedDatabaseManager} from "../manager/NamespacedDatabaseManager";
 
 export class WorldDatabase extends GameObjectDatabase<World> {
-  constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly world: World, initialIdList?: string[]) {
+  constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly world: World, initialIdList?: [string, string][]) {
     super(namespace, manager);
     this._uid = 'world@0';
     if (initialIdList) {
-      initialIdList.forEach(id => {
-        const value = Utils.deserializeData(this._dynamicProperty.getFromWorld(id));
-        this._dataMap.set(id, value);
+      initialIdList.forEach(([propertyId, dataId]) => {
+        const value = Utils.deserializeData(world.getDynamicProperty(propertyId));
+        this._dataMap.set(dataId, value);
       });
     }
   }
 
-  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: World, initialIdList?: string[]) {
+  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: World, initialIdList?: [string, string][]) {
     return new WorldDatabase(namespace, manager, gameObject, initialIdList);
   }
 

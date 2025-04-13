@@ -9,9 +9,10 @@ export class EntityDatabase extends GameObjectDatabase<Entity> {
   constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly entity: Entity) {
     super(namespace, manager);
     this._uid = UniqueIdUtils.getEntityUniqueId(entity);
-    this.entity.getDynamicPropertyIds().forEach((identifier) => {
-      const id = this._dynamicProperty.extractDataIdentifier(identifier);
-      const value = Utils.deserializeData(this.entity.getDynamicProperty(id));
+    this.entity.getDynamicPropertyIds().forEach((propertyId) => {
+      if (!this._dynamicProperty.validateDataIdentifier(propertyId)) return;
+      const id = this._dynamicProperty.extractDataIdentifier(propertyId);
+      const value = Utils.deserializeData(this.entity.getDynamicProperty(propertyId));
       this._dataMap.set(id, value);
     });
   }

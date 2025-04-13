@@ -6,6 +6,8 @@ export type DynamicPropertyObjectValue = { [key: string]: DynamicPropertyValue |
 export type TendrockDynamicPropertyValue = DynamicPropertyValue | DynamicPropertyObjectValue;
 
 export class NamespacedDynamicProperty {
+  public static TendrockPropertyIdPrefix = '[tendrock]';
+
   constructor(readonly namespace: string) {
     if (namespace.includes('-')) {
       throw new Error(`Invalid namespace: ${namespace}`);
@@ -24,14 +26,14 @@ export class NamespacedDynamicProperty {
     if (identifier.includes('-')) {
       throw new Error(`Invalid identifier: "${identifier}"`);
     }
-    return `${this.namespace}-${identifier}`;
+    return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${identifier}`;
   }
 
-  public getBlockDataIdentifier(block: Block | string, identifier: string) {
+  public getBlockDataIdentifier(blockOrLid: Block | string, identifier: string) {
     if (identifier.includes('-')) {
       throw new Error(`Invalid identifier: "${identifier}"`);
     }
-    return `${this.namespace}-${typeof block === 'string' ? block : Utils.getLocationId(block)}-${identifier}`;
+    return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${typeof blockOrLid === 'string' ? blockOrLid : Utils.getLocationId(blockOrLid)}-${identifier}`;
   }
 
   public extractDataIdentifier(dataIdentifier: string) {
@@ -42,7 +44,7 @@ export class NamespacedDynamicProperty {
     if (!dataIdentifier.includes('-')) {
       return dataIdentifier;
     }
-    if (!dataIdentifier.startsWith(this.namespace)) {
+    if (!this.validateBlockDataIdentifier(dataIdentifier)) {
       return dataIdentifier;
     }
     const lid = typeof block === 'string' ? block : Utils.getLocationId(block);
@@ -51,11 +53,11 @@ export class NamespacedDynamicProperty {
   }
 
   public validateDataIdentifier(identifier: string) {
-    return identifier.startsWith(this.namespace + '-');
+    return identifier.startsWith(`${NamespacedDynamicProperty.TendrockPropertyIdPrefix + this.namespace}-`);
   }
 
   public validateBlockDataIdentifier(identifier: string) {
-    return identifier.startsWith(this.namespace + '-') && identifier.split('-').length === 3;
+    return identifier.startsWith(`${NamespacedDynamicProperty.TendrockPropertyIdPrefix + this.namespace}-`) && identifier.split('-').length === 3;
   }
 
   public putToWorld(identifier: string, value: TendrockDynamicPropertyValue) {

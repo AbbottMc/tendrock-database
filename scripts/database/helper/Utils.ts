@@ -1,6 +1,8 @@
 import {Dimension, DimensionLocation, system, Vector3} from "@minecraft/server";
 import {MinecraftDimensionTypes} from "@minecraft/vanilla-data";
-import {DynamicPropertyValue, TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
+import {
+  DynamicPropertyValue, NamespacedDynamicProperty, TendrockDynamicPropertyValue
+} from "../NamespacedDynamicProperty";
 
 export interface IdentifierParseResult {
   namespace: string;
@@ -57,6 +59,13 @@ export class Utils {
     }
   }
 
+  private static _getTendrockPropertyId(identifier: string) {
+    if (!identifier.startsWith(NamespacedDynamicProperty.TendrockPropertyIdPrefix)) {
+      return undefined;
+    }
+    return identifier.substring(NamespacedDynamicProperty.TendrockPropertyIdPrefix.length);
+  }
+
   private static parseDataIdentifier(identifier: string) {
     const split = identifier.split('-');
     if (split.length !== 2) {
@@ -74,7 +83,11 @@ export class Utils {
   }
 
   public static parseIdentifier(identifier: string): IdentifierParseResult {
-    return this.parseDataIdentifier(identifier) ?? this.parseBlockDataIdentifier(identifier) ?? {} as IdentifierParseResult;
+    const tendrockPropertyId = this._getTendrockPropertyId(identifier);
+    if (!tendrockPropertyId) {
+      return {} as IdentifierParseResult;
+    }
+    return this.parseDataIdentifier(tendrockPropertyId) ?? this.parseBlockDataIdentifier(tendrockPropertyId) ?? {} as IdentifierParseResult;
   }
 
   public static async runJob(generator: Generator<void, void, void>) {

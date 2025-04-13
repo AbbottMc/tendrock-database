@@ -8,7 +8,7 @@ import {GameObjectDatabase} from "../GameObjectDatabase";
 
 export type DatabaseTypeBy<T> = T extends Block ? BlockDatabase : T extends Entity ? EntityDatabase : T extends ItemStack ? ItemStackDatabase : WorldDatabase;
 export type DatabaseFactory<T extends Block | Entity | ItemStack | World> = {
-  create(namespace: string, manager: NamespacedDatabaseManager, gameObject: T, initialIdList?: string[]): InstanceType<DatabaseFactory<T>>;
+  create(namespace: string, manager: NamespacedDatabaseManager, gameObject: T, initialIdList?: [string, string][]): InstanceType<DatabaseFactory<T>>;
 } & (new (...args: any[]) => any);
 
 export class NamespacedDatabaseManager {
@@ -17,8 +17,8 @@ export class NamespacedDatabaseManager {
   private _entityDatabaseMap = new Map<string, EntityDatabase>()
   private _worldDatabase!: WorldDatabase;
 
-  private _blockInitialIdListMap = new Map<string, string[]>();
-  private _worldInitialIdList: string[] | undefined = [];
+  private _blockInitialIdListMap = new Map<string, [string, string][]>();
+  private _worldInitialIdList: [string, string][] | undefined = [];
 
   private _isFlushing = false;
   private _dirtyDatabaseList = [] as GameObjectDatabase<any>[];
@@ -45,26 +45,26 @@ export class NamespacedDatabaseManager {
     }
   }
 
-  public _addBlockDataId(runtimeId: string, lid: string, dataId: string) {
+  public _addBlockDataId(runtimeId: string, lid: string, propertyId: string, dataId: string) {
     this._assertInvokedByTendrock(runtimeId);
     const dataIdList = this._blockInitialIdListMap.get(lid) ?? [];
-    dataIdList.push(dataId);
+    dataIdList.push([propertyId, dataId]);
     this._blockInitialIdListMap.set(lid, dataIdList);
   }
 
-  public _addWorldDataId(runtimeId: string, dataId: string) {
+  public _addWorldDataId(runtimeId: string, propertyId: string, dataId: string) {
     this._assertInvokedByTendrock(runtimeId);
     if (!this._worldInitialIdList) {
       throw new Error("World data id list is used and frozen.");
     }
-    this._worldInitialIdList.push(dataId);
+    this._worldInitialIdList.push([propertyId, dataId]);
   }
 
   private _prepare<T extends Block | Entity | ItemStack | World>(gameObject: T): {
     uniqueId: string | undefined,
     databaseMap: Map<string, DatabaseTypeBy<T>> | undefined,
     databaseType: DatabaseFactory<T>,
-    initialIdList?: string[]
+    initialIdList?: [string, string][]
   } {
     if (gameObject instanceof Block) {
       const uniqueId = UniqueIdUtils.getBlockUniqueId(gameObject);

@@ -18,13 +18,13 @@ export class DatabaseManager {
 
   private* _loadAndParseWorldDynamicPropertiesGenerator(): Generator<void, void, void> {
     for (const id of world.getDynamicPropertyIds()) {
-      const {namespace, dataIdentifier, lid} = Utils.parseIdentifier(id);
+      const {namespace, lid, dataIdentifier} = Utils.parseIdentifier(id);
       if (!namespace) continue;
       const manager = this._getOrCreateNamespacedManager(namespace);
       if (lid) {
-        manager._addBlockDataId(UniqueIdUtils.RuntimeId, lid, dataIdentifier);
+        manager._addBlockDataId(UniqueIdUtils.RuntimeId, lid, id, dataIdentifier);
       } else {
-        manager._addWorldDataId(UniqueIdUtils.RuntimeId, dataIdentifier);
+        manager._addWorldDataId(UniqueIdUtils.RuntimeId, id, dataIdentifier);
       }
       yield;
     }
