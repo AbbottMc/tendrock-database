@@ -10,6 +10,8 @@ export class DatabaseManager {
   private _databaseManagerMap = new Map<string, NamespacedDatabaseManager>();
   private _isInitialized = false;
   private _whenReadyCallbackList = new Array<() => void>();
+  private _flushInterval = 3 * 6 * 20;
+  private _autoFlushTaskId: number | undefined;
 
   constructor() {
     this._startFlushWhenPlayerLeaveTask();
@@ -93,6 +95,14 @@ export class DatabaseManager {
     databaseManager.remove(gameObject, clearData);
   }
 
+  public setFlushInterval(interval: number, flush = true) {
+    this._flushInterval = interval;
+    if (flush) {
+      this.flush();
+    }
+    this._startAutoFlushTask();
+  }
+
   protected* flushDatabase(database: GameObjectDatabase<any>): Generator<void, void, void> {
     database._beginFlush(UniqueIdUtils.RuntimeId);
     const dirtyIdList = database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
@@ -168,9 +178,12 @@ export class DatabaseManager {
   }
 
   protected _startAutoFlushTask() {
-    system.runInterval(() => {
+    if (this._autoFlushTaskId) {
+      system.clearRun(this._autoFlushTaskId);
+    }
+    this._autoFlushTaskId = system.runInterval(() => {
       this.flush();
-    }, 3 * 20);
+    }, this._flushInterval);
   }
 }
 
