@@ -1,9 +1,10 @@
 import { NamespacedDynamicProperty } from "./NamespacedDynamicProperty";
 import { UniqueIdUtils } from "./helper/UniqueIdUtils";
+import { Utils } from "./helper/Utils";
 export class GameObjectDatabase {
-    constructor(namespace, manager) {
+    constructor(namespace, parentManager) {
         this.namespace = namespace;
-        this.manager = manager;
+        this.parentManager = parentManager;
         this._dataMap = new Map();
         this._dirtyDataIdList = [];
         this._dirtyDataIdBuffer = [];
@@ -16,7 +17,7 @@ export class GameObjectDatabase {
         if (!dirtyIdList.includes(identifier)) {
             dirtyIdList.push(identifier);
         }
-        this.manager._markDirty(UniqueIdUtils.RuntimeId, this);
+        this.parentManager._markDirty(UniqueIdUtils.RuntimeId, this);
     }
     getUid() {
         return this._uid;
@@ -59,23 +60,18 @@ export class GameObjectDatabase {
             this._saveData(UniqueIdUtils.RuntimeId, identifier, undefined);
         });
     }
-    _assertInvokedByTendrock(runtimeId) {
-        if (runtimeId !== UniqueIdUtils.RuntimeId) {
-            throw new Error("This method can not be invoked manually!");
-        }
-    }
     _beginFlush(runtimeId) {
-        this._assertInvokedByTendrock(runtimeId);
+        Utils.assertInvokedByTendrock(runtimeId);
         this._isFlushing = true;
     }
     _endFlush(runtimeId) {
-        this._assertInvokedByTendrock(runtimeId);
+        Utils.assertInvokedByTendrock(runtimeId);
         this._dirtyDataIdList = this._dirtyDataIdBuffer;
         this._isFlushing = false;
         this._dirtyDataIdBuffer = [];
     }
     _getDirtyDataIdList(runtimeId) {
-        this._assertInvokedByTendrock(runtimeId);
+        Utils.assertInvokedByTendrock(runtimeId);
         return this._dirtyDataIdList;
     }
 }

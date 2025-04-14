@@ -19,7 +19,7 @@ export class WorldDatabase extends GameObjectDatabase {
         return this.world;
     }
     _saveData(runtimeId, identifier, value) {
-        this._assertInvokedByTendrock(runtimeId);
+        Utils.assertInvokedByTendrock(runtimeId);
         this._dynamicProperty.putToWorld(identifier, value);
     }
 }

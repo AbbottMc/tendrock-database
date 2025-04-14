@@ -2,6 +2,7 @@ import {Dimension, DimensionLocation, system, Vector3} from "@minecraft/server";
 import {
   DynamicPropertyValue, NamespacedDynamicProperty, TendrockDynamicPropertyValue
 } from "../NamespacedDynamicProperty";
+import {UniqueIdUtils} from "./UniqueIdUtils";
 
 export interface IdentifierParseResult {
   namespace: string;
@@ -10,6 +11,13 @@ export interface IdentifierParseResult {
 }
 
 export class Utils {
+
+  public static assertInvokedByTendrock(runtimeId: string) {
+    if (runtimeId !== UniqueIdUtils.RuntimeId) {
+      throw new Error("This method can not be invoked manually!");
+    }
+  }
+
   public static getDimensionShortName(dimension: Dimension) {
     switch (dimension.id) {
       case "minecraft:overworld" :

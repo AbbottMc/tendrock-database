@@ -1,7 +1,8 @@
 import {NamespacedDynamicProperty, TendrockDynamicPropertyValue} from "./NamespacedDynamicProperty";
 import {Block, Entity, ItemStack, World} from "@minecraft/server";
 import {UniqueIdUtils} from "./helper/UniqueIdUtils";
-import {NamespacedDatabaseManager} from "./manager/NamespacedDatabaseManager";
+import {NamespacedDatabaseManager} from "./manager";
+import {Utils} from "./helper/Utils";
 
 export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
   protected _dynamicProperty: NamespacedDynamicProperty;
@@ -11,7 +12,7 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
   protected _isFlushing = false;
   protected _uid: string = '';
 
-  protected constructor(public readonly namespace: string, protected readonly manager: NamespacedDatabaseManager) {
+  protected constructor(public readonly namespace: string, public readonly parentManager: NamespacedDatabaseManager) {
     this._dynamicProperty = NamespacedDynamicProperty.create(namespace);
   }
 
@@ -24,7 +25,7 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     if (!dirtyIdList.includes(identifier)) {
       dirtyIdList.push(identifier);
     }
-    this.manager._markDirty(UniqueIdUtils.RuntimeId, this);
+    this.parentManager._markDirty(UniqueIdUtils.RuntimeId, this);
   }
 
   public getUid() {
@@ -79,26 +80,20 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     });
   }
 
-  protected _assertInvokedByTendrock(runtimeId: string) {
-    if (runtimeId !== UniqueIdUtils.RuntimeId) {
-      throw new Error("This method can not be invoked manually!");
-    }
-  }
-
   public _beginFlush(runtimeId: string) {
-    this._assertInvokedByTendrock(runtimeId);
+    Utils.assertInvokedByTendrock(runtimeId);
     this._isFlushing = true;
   }
 
   public _endFlush(runtimeId: string) {
-    this._assertInvokedByTendrock(runtimeId);
+    Utils.assertInvokedByTendrock(runtimeId);
     this._dirtyDataIdList = this._dirtyDataIdBuffer;
     this._isFlushing = false;
     this._dirtyDataIdBuffer = [];
   }
 
   public _getDirtyDataIdList(runtimeId: string) {
-    this._assertInvokedByTendrock(runtimeId);
+    Utils.assertInvokedByTendrock(runtimeId);
     return this._dirtyDataIdList;
   }
 }

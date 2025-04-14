@@ -20,7 +20,13 @@ var __rest = (this && this.__rest) || function (s, e) {
 };
 import { system } from "@minecraft/server";
 import { NamespacedDynamicProperty } from "../NamespacedDynamicProperty";
+import { UniqueIdUtils } from "./UniqueIdUtils";
 export class Utils {
+    static assertInvokedByTendrock(runtimeId) {
+        if (runtimeId !== UniqueIdUtils.RuntimeId) {
+            throw new Error("This method can not be invoked manually!");
+        }
+    }
     static getDimensionShortName(dimension) {
         switch (dimension.id) {
             case "minecraft:overworld":

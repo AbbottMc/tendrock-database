@@ -21,7 +21,7 @@ export class BlockDatabase extends GameObjectDatabase {
         return this.block;
     }
     _saveData(runtimeId, identifier, value) {
-        this._assertInvokedByTendrock(runtimeId);
+        Utils.assertInvokedByTendrock(runtimeId);
         this._dynamicProperty.putToBlock(this._uid, identifier, value);
     }
 }

@@ -1,9 +1,12 @@
 import {Block, Entity, ItemStack, system, World, world} from "@minecraft/server";
 import {GameObjectDatabase} from "../GameObjectDatabase";
-import {DatabaseTypeBy, NamespacedDatabaseManager} from "./NamespacedDatabaseManager";
+import {DatabaseTypeBy, DatabaseTypeMap, NamespacedDatabaseManager} from "./NamespacedDatabaseManager";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
 import {Utils} from "../helper/Utils";
 import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
+import {SetMap} from "@tenolib/map";
+import {BlockDatabase, EntityDatabase, ItemStackDatabase} from "../impl";
+import {DatabaseTypes} from "../DatabaseTypes";
 
 
 export class DatabaseManager {
@@ -12,6 +15,10 @@ export class DatabaseManager {
   private _whenReadyCallbackList = new Array<() => void>();
   private _flushInterval = 3 * 6 * 20;
   private _autoFlushTaskId: number | undefined;
+
+  private _blockToDatabaseMap = new SetMap<string, BlockDatabase>();
+  private _itemToDatabaseMap = new SetMap<string, ItemStackDatabase>();
+  private _entityToDatabaseMap = new SetMap<string, EntityDatabase>();
 
   constructor() {
     this._startFlushWhenPlayerLeaveTask();
@@ -50,9 +57,13 @@ export class DatabaseManager {
     if (databaseManager) {
       return databaseManager;
     }
-    databaseManager = NamespacedDatabaseManager.create(namespace);
+    databaseManager = NamespacedDatabaseManager._create(UniqueIdUtils.RuntimeId, namespace, this);
     this._databaseManagerMap.set(namespace, databaseManager);
     return databaseManager;
+  }
+
+  protected _getNamespacedManager(namespace: string) {
+    return this._databaseManagerMap.get(namespace);
   }
 
   private _doReady() {
@@ -80,19 +91,71 @@ export class DatabaseManager {
     return databaseManager.getOrCreate(gameObject);
   }
 
+  public get<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T> | undefined {
+    const databaseManager = this._getNamespacedManager(namespace);
+    if (!databaseManager) {
+      return undefined;
+    }
+    return databaseManager.get(gameObject);
+  }
+
   public setData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string, value: TendrockDynamicPropertyValue) {
     const database = this.getOrCreate(namespace, gameObject);
     database.set(identifier, value);
   }
 
   public getData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string): TendrockDynamicPropertyValue {
-    const database = this.getOrCreate(namespace, gameObject);
-    return database.get(identifier);
+    const database = this.get(namespace, gameObject);
+    return database?.get(identifier);
   }
 
   public remove<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, clearData = false): void {
-    const databaseManager = this._getOrCreateNamespacedManager(namespace);
-    databaseManager.remove(gameObject, clearData);
+    const databaseManager = this._getNamespacedManager(namespace);
+    databaseManager?.remove(gameObject, clearData);
+  }
+
+  private _prepare<T extends Block | Entity | ItemStack | World>(gameObject: T): {
+    uniqueId: string | undefined,
+    gameObjectToDatabaseMap?: SetMap<string, GameObjectDatabase<any>>
+  } {
+    if (gameObject instanceof Block) {
+      return {
+        uniqueId: UniqueIdUtils.getBlockUniqueId(gameObject),
+        gameObjectToDatabaseMap: this._blockToDatabaseMap,
+      };
+    } else if (gameObject instanceof Entity) {
+      return {
+        uniqueId: UniqueIdUtils.getEntityUniqueId(gameObject),
+        gameObjectToDatabaseMap: this._entityToDatabaseMap,
+      };
+    } else if (gameObject instanceof ItemStack) {
+      return {
+        uniqueId: UniqueIdUtils.getItemUniqueId(gameObject),
+        gameObjectToDatabaseMap: this._itemToDatabaseMap,
+      }
+    } else if (gameObject instanceof World) {
+      return {
+        uniqueId: 'world@0',
+      }
+    } else {
+      throw new Error(`Invalid game object type.`);
+    }
+  }
+
+  public getDatabaseListByGameObject<T extends Block | Entity | ItemStack | World>(gameObject: T): DatabaseTypeBy<T>[] {
+    const {uniqueId, gameObjectToDatabaseMap} = this._prepare(gameObject);
+    if (!gameObjectToDatabaseMap || !uniqueId) {
+      return [] as DatabaseTypeBy<T>[];
+    }
+    return (gameObjectToDatabaseMap.get(uniqueId) ?? []) as DatabaseTypeBy<T>[];
+  }
+
+  public getDatabaseList<T extends DatabaseTypes>(namespace: string, type: T): DatabaseTypeMap[T][] {
+    const manager = this._getNamespacedManager(namespace);
+    if (!manager) {
+      return [] as DatabaseTypeMap[T][];
+    }
+    return manager.getDatabaseList(type);
   }
 
   public setFlushInterval(interval: number, flush = true) {
@@ -184,6 +247,21 @@ export class DatabaseManager {
     this._autoFlushTaskId = system.runInterval(() => {
       this.flush();
     }, this._flushInterval);
+  }
+
+  public _getBlockToDatabaseMap(runtimeId: string) {
+    Utils.assertInvokedByTendrock(runtimeId);
+    return this._blockToDatabaseMap;
+  }
+
+  public _getEntityToDatabaseMap(runtimeId: string) {
+    Utils.assertInvokedByTendrock(runtimeId);
+    return this._entityToDatabaseMap;
+  }
+
+  public _getItemToDatabaseMap(runtimeId: string) {
+    Utils.assertInvokedByTendrock(runtimeId);
+    return this._itemToDatabaseMap;
   }
 }
 

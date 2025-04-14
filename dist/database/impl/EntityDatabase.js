@@ -21,7 +21,7 @@ export class EntityDatabase extends GameObjectDatabase {
         return this.entity;
     }
     _saveData(runtimeId, identifier, value) {
-        this._assertInvokedByTendrock(runtimeId);
+        Utils.assertInvokedByTendrock(runtimeId);
         this._dynamicProperty.putToEntity(this.entity, identifier, value);
     }
 }

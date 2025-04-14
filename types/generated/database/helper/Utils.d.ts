@@ -6,6 +6,7 @@ export interface IdentifierParseResult {
     lid?: string;
 }
 export declare class Utils {
+    static assertInvokedByTendrock(runtimeId: string): void;
     static getDimensionShortName(dimension: Dimension): "o" | "n" | "e" | undefined;
     static getLocationId(dimensionLocation: DimensionLocation): string;
     static isVector3(value: any): value is Vector3;

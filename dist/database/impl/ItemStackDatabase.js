@@ -21,7 +21,7 @@ export class ItemStackDatabase extends GameObjectDatabase {
         return this.itemStack;
     }
     _saveData(runtimeId, identifier, value) {
-        this._assertInvokedByTendrock(runtimeId);
+        Utils.assertInvokedByTendrock(runtimeId);
         this._dynamicProperty.putToItem(this.itemStack, identifier, value);
     }
 }
