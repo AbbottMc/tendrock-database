@@ -113,7 +113,7 @@ world.afterEvents.worldLoad.subscribe(() => {
 
 - [x] Perfect the **README.md**, providing a quick start guide.
 - [ ] Provide comprehensive documentation.
-- [ ] Expose `NamespacedDataManager` in an appropriate way.
+- [x] Expose `NamespacedDataManager` in an appropriate way.
 - [ ] Visualization tools for data debugging.
 
 ## Supported Versions

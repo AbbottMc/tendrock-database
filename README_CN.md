@@ -113,7 +113,7 @@ world.afterEvents.worldLoad.subscribe(() => {
 
 - [x] 完善 **README.md**，提供快速上手指南
 - [ ] 提供完善的文档
-- [ ] 以合适的方式开放 `NamespacedDataManager` 
+- [x] 以合适的方式开放 `NamespacedDataManager` 
 - [ ] 可视化数据调试功能
 
 ## 支持版本
