@@ -1,12 +1,10 @@
-import {
-  Block, DimensionLocation, Entity, EntityInitializationCause, ItemStack, system, World, world
-} from "@minecraft/server";
+import {Block, Entity, EntityInitializationCause, ItemStack, system, World, world} from "@minecraft/server";
 import {GameObjectDatabase} from "../GameObjectDatabase";
 import {DatabaseTypeBy, DatabaseTypeMap, NamespacedDatabaseManager} from "./NamespacedDatabaseManager";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
 import {Utils} from "../helper/Utils";
 import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
-import {BetterSet, SetMap} from "@tenolib/map";
+import {SetMap} from "@tenolib/map";
 import {BlockDatabase, EntityDatabase, ItemStackDatabase} from "../impl";
 import {DatabaseTypes} from "../DatabaseTypes";
 
@@ -15,7 +13,6 @@ export class DatabaseManager {
   private _databaseManagerMap = new Map<string, NamespacedDatabaseManager>();
   private _isInitialized = false;
   private _whenReadyCallbackList = new Array<() => void>();
-  private _flushInterval = 3 * 6 * 20;
   private _autoFlushTaskId: number | undefined;
 
   private _blockToDatabaseMap = new SetMap<string, BlockDatabase>();
@@ -23,6 +20,10 @@ export class DatabaseManager {
   private _entityToDatabaseMap = new SetMap<string, EntityDatabase>();
 
   private _changingEntityDatabaseBuffer = new Map<string, EntityDatabase>();
+
+  private _flushInterval = 3 * 6 * 20;
+  private _autoUpdateSourceEntity = false;
+  private _autoFlush = true;
 
   constructor() {
     this._startFlushWhenPlayerLeaveTask();
@@ -170,6 +171,31 @@ export class DatabaseManager {
     this._startAutoFlushTask();
   }
 
+  public getFlushInterval() {
+    return this._flushInterval;
+  }
+
+  public setAutoFlush(value = true) {
+    this._autoFlush = value;
+    if (value) {
+      this._clearFlushJobIfPresent();
+    } else {
+      this._startAutoFlushTask();
+    }
+  }
+
+  public autoFlush() {
+    return this._autoFlush;
+  }
+
+  public setAutoUpdateSourceEntity(value = true) {
+    this._autoUpdateSourceEntity = value;
+  }
+
+  public autoUpdateSourceEntity() {
+    return this._autoUpdateSourceEntity;
+  }
+
   protected* flushDatabase(database: GameObjectDatabase<any>): Generator<void, void, void> {
     database._beginFlush(UniqueIdUtils.RuntimeId);
     const dirtyIdList = database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
@@ -214,6 +240,7 @@ export class DatabaseManager {
   }
 
   public flushSync() {
+    if (!this.isReady()) return;
     const managerValues = this._databaseManagerMap.values();
     for (const manager of managerValues) {
       manager._beginFlush(UniqueIdUtils.RuntimeId);
@@ -229,6 +256,7 @@ export class DatabaseManager {
   }
 
   public flush() {
+    if (!this.isReady()) return;
     system.runJob(this.flushAllDataGenerator());
   }
 
@@ -244,10 +272,15 @@ export class DatabaseManager {
     });
   }
 
-  protected _startAutoFlushTask() {
-    if (this._autoFlushTaskId) {
-      system.clearRun(this._autoFlushTaskId);
+  protected _clearFlushJobIfPresent() {
+    if (this._autoFlushTaskId !== undefined) {
+      system.clearJob(this._autoFlushTaskId);
     }
+  }
+
+  protected _startAutoFlushTask() {
+    this._clearFlushJobIfPresent();
+    if (!this._autoFlush) return;
     this._autoFlushTaskId = system.runInterval(() => {
       this.flush();
     }, this._flushInterval);
@@ -288,6 +321,7 @@ export class DatabaseManager {
 export const databaseManager = new DatabaseManager();
 
 world.beforeEvents.entityRemove.subscribe(({removedEntity}) => {
+  if (!databaseManager.autoUpdateSourceEntity()) return;
   const removedEntityDatabaseList = databaseManager
     .getDatabaseListByGameObject(removedEntity)
     .filter((e) => e.getUid() === removedEntity.id);
@@ -305,17 +339,17 @@ world.beforeEvents.entityRemove.subscribe(({removedEntity}) => {
 });
 
 world.afterEvents.entitySpawn.subscribe(({entity, cause}) => {
-  if (cause === EntityInitializationCause.Event || cause === EntityInitializationCause.Transformed) {
-    const locationId = Utils.getLocationId({
-      ...entity.location, dimension: entity.dimension
-    }, true);
-    // console.log('entity spawned: ', locationId)
-    const {
-      cleanBuffer, entityDatabase
-    } = databaseManager._getChangingEntityDatabaseBuffer(UniqueIdUtils.RuntimeId, locationId);
-    if (entityDatabase) {
-      entityDatabase._setEntity(UniqueIdUtils.RuntimeId, entity);
-      cleanBuffer();
-    }
+  if (!databaseManager.autoUpdateSourceEntity()) return;
+  if (cause !== EntityInitializationCause.Event && cause !== EntityInitializationCause.Transformed) return;
+  const locationId = Utils.getLocationId({
+    ...entity.location, dimension: entity.dimension
+  }, true);
+  // console.log('entity spawned: ', locationId)
+  const {
+    cleanBuffer, entityDatabase
+  } = databaseManager._getChangingEntityDatabaseBuffer(UniqueIdUtils.RuntimeId, locationId);
+  if (entityDatabase) {
+    entityDatabase._setEntity(UniqueIdUtils.RuntimeId, entity);
+    cleanBuffer();
   }
 });

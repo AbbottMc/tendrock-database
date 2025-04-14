@@ -1,6 +1,6 @@
 {
   "name": "@tendrock/database",
-  "version": "0.3.0-alpha.0",
+  "version": "0.4.0-alpha.0",
   "description": "A database lib under the Tendrock ecosystem for Minecraft Bedrock Edition Script API",
   "main": "dist/index.js",
   "scripts": {
@@ -11,6 +11,7 @@
     "dev": "just-scripts dev",
     "dev-no-scripts": "just-scripts dev-no-scripts",
     "tsc": "tsc",
+    "npm-i": "npm i",
     "publish-latest": "npm publish --access public --tag latest"
   },
   "repository": {
