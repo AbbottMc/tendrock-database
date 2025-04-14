@@ -38,13 +38,16 @@ export class Utils {
         }
         return undefined;
     }
-    static getLocationId(dimensionLocation) {
+    static toFixed(num, precision = 2, isFixed = true) {
+        return isFixed ? num.toFixed(precision) : num;
+    }
+    static getLocationId(dimensionLocation, fixed = false) {
         const { dimension } = dimensionLocation, location = __rest(dimensionLocation, ["dimension"]);
         const dimensionShortName = this.getDimensionShortName(dimension);
         if (!dimensionShortName) {
             throw new Error(`Invalid dimension: ${dimension.id}`);
         }
-        return `${dimensionShortName}${location.x}_${location.y}_${location.z}`.replaceAll('-', 'f');
+        return `${dimensionShortName}${this.toFixed(location.x, 2, fixed)}_${this.toFixed(location.y, 2, fixed)}_${this.toFixed(location.z, 2, fixed)}`.replaceAll('-', 'f');
     }
     static isVector3(value) {
         return typeof value === "object" && value.x !== undefined && value.y !== undefined && value.z !== undefined;

@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { Block, Entity, ItemStack, system, World, world } from "@minecraft/server";
+import { Block, Entity, EntityInitializationCause, ItemStack, system, World, world } from "@minecraft/server";
 import { NamespacedDatabaseManager } from "./NamespacedDatabaseManager";
 import { UniqueIdUtils } from "../helper/UniqueIdUtils";
 import { Utils } from "../helper/Utils";
@@ -21,6 +21,7 @@ export class DatabaseManager {
         this._blockToDatabaseMap = new SetMap();
         this._itemToDatabaseMap = new SetMap();
         this._entityToDatabaseMap = new SetMap();
+        this._changingEntityDatabaseBuffer = new Map();
         this._startFlushWhenPlayerLeaveTask();
         this._loadWorldDynamicPropertiesWhenWorldLoaded();
     }
@@ -243,5 +244,43 @@ export class DatabaseManager {
         Utils.assertInvokedByTendrock(runtimeId);
         return this._itemToDatabaseMap;
     }
+    _setChangingEntityDatabaseBuffer(runtimeId, locationId, entityDatabase) {
+        Utils.assertInvokedByTendrock(runtimeId);
+        // console.log(`set changing entity database buffer: ${locationId}`)
+        this._changingEntityDatabaseBuffer.set(locationId, entityDatabase);
+    }
+    _getChangingEntityDatabaseBuffer(runtimeId, locationId) {
+        Utils.assertInvokedByTendrock(runtimeId);
+        return {
+            entityDatabase: this._changingEntityDatabaseBuffer.get(locationId),
+            cleanBuffer: () => {
+                this._changingEntityDatabaseBuffer.delete(locationId);
+            }
+        };
+    }
 }
 export const databaseManager = new DatabaseManager();
+world.beforeEvents.entityRemove.subscribe(({ removedEntity }) => {
+    const removedEntityDatabaseList = databaseManager
+        .getDatabaseListByGameObject(removedEntity)
+        .filter((e) => e.getUid() === removedEntity.id);
+    if (removedEntityDatabaseList.length <= 0)
+        return;
+    const removedEntityDatabase = removedEntityDatabaseList[0];
+    const locationId = Utils.getLocationId(Object.assign(Object.assign({}, removedEntity.location), { dimension: removedEntity.dimension }), true);
+    databaseManager._setChangingEntityDatabaseBuffer(UniqueIdUtils.RuntimeId, locationId, removedEntityDatabase);
+    system.runTimeout(() => {
+        databaseManager._getChangingEntityDatabaseBuffer(UniqueIdUtils.RuntimeId, locationId).cleanBuffer();
+    }, 3);
+});
+world.afterEvents.entitySpawn.subscribe(({ entity, cause }) => {
+    if (cause === EntityInitializationCause.Event || cause === EntityInitializationCause.Transformed) {
+        const locationId = Utils.getLocationId(Object.assign(Object.assign({}, entity.location), { dimension: entity.dimension }), true);
+        // console.log('entity spawned: ', locationId)
+        const { cleanBuffer, entityDatabase } = databaseManager._getChangingEntityDatabaseBuffer(UniqueIdUtils.RuntimeId, locationId);
+        if (entityDatabase) {
+            entityDatabase._setEntity(UniqueIdUtils.RuntimeId, entity);
+            cleanBuffer();
+        }
+    }
+});

@@ -3,11 +3,17 @@ import {ItemStack} from "@minecraft/server";
 import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
 import {Utils} from "../helper/Utils";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
-import {NamespacedDatabaseManager} from "../manager/NamespacedDatabaseManager";
+import {NamespacedDatabaseManager} from "../manager";
 
 export class ItemStackDatabase extends GameObjectDatabase<ItemStack> {
   constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly itemStack: ItemStack) {
     super(namespace, manager);
+    if (!itemStack) {
+      throw new Error('ItemStack is null');
+    }
+    if (itemStack.isStackable) {
+      throw new Error('Cannot create database on stackable items.');
+    }
     this._uid = UniqueIdUtils.getItemUniqueId(itemStack);
     this.itemStack.getDynamicPropertyIds().forEach((propertyId) => {
       if (!this._dynamicProperty.validateDataIdentifier(propertyId)) return;

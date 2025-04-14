@@ -75,9 +75,16 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     this._dataMap.clear();
     this._dirtyDataIdList = [];
     this._dirtyDataIdBuffer = [];
-    dataIdList.forEach((identifier) => {
+    this.clearDynamicProperties(dataIdList);
+  }
+
+  public clearDynamicProperties(dataIdList?: string[]) {
+    (dataIdList ?? Array.from(this._dataMap.keys())).forEach((identifier) => {
       this._saveData(UniqueIdUtils.RuntimeId, identifier, undefined);
     });
+  }
+
+  protected _onFlushFinished() {
   }
 
   public _beginFlush(runtimeId: string) {
@@ -90,6 +97,7 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     this._dirtyDataIdList = this._dirtyDataIdBuffer;
     this._isFlushing = false;
     this._dirtyDataIdBuffer = [];
+    this._onFlushFinished();
   }
 
   public _getDirtyDataIdList(runtimeId: string) {

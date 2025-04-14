@@ -1,6 +1,7 @@
 import { Block, Entity, ItemStack, World } from "@minecraft/server";
 import { BlockDatabase, EntityDatabase, ItemStackDatabase, WorldDatabase } from "../impl";
 import { GameObjectDatabase } from "../GameObjectDatabase";
+import { BetterSet } from "@tenolib/map";
 import { DatabaseManager } from "./DatabaseManager";
 import { DatabaseTypes } from "../DatabaseTypes";
 export type DatabaseTypeBy<T> = T extends Block ? BlockDatabase : T extends Entity ? EntityDatabase : T extends ItemStack ? ItemStackDatabase : WorldDatabase;
@@ -36,7 +37,8 @@ export declare class NamespacedDatabaseManager {
     getDatabaseList<T extends DatabaseTypes>(type: T): DatabaseTypeMap[T][];
     getWorldDatabase(): DatabaseTypeBy<World> | undefined;
     remove<T extends Block | Entity | ItemStack | World>(gameObject: T, clearData?: boolean): void;
+    _addDatabase<T extends Block | Entity | ItemStack | World>(runtimeId: string, database: DatabaseTypeBy<T>): void;
     _beginFlush(runtimeId: string): void;
     _endFlush(runtimeId: string): void;
-    getDirtyDatabaseList(): GameObjectDatabase<any>[];
+    getDirtyDatabaseList(): BetterSet<GameObjectDatabase<any>>;
 }

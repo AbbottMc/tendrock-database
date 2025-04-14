@@ -5,6 +5,12 @@ export class ItemStackDatabase extends GameObjectDatabase {
     constructor(namespace, manager, itemStack) {
         super(namespace, manager);
         this.itemStack = itemStack;
+        if (!itemStack) {
+            throw new Error('ItemStack is null');
+        }
+        if (itemStack.isStackable) {
+            throw new Error('Cannot create database on stackable items.');
+        }
         this._uid = UniqueIdUtils.getItemUniqueId(itemStack);
         this.itemStack.getDynamicPropertyIds().forEach((propertyId) => {
             if (!this._dynamicProperty.validateDataIdentifier(propertyId))

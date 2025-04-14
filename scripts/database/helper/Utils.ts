@@ -30,13 +30,17 @@ export class Utils {
     return undefined;
   }
 
-  public static getLocationId(dimensionLocation: DimensionLocation) {
+  public static toFixed(num: number, precision = 2, isFixed = true) {
+    return isFixed ? num.toFixed(precision) : num;
+  }
+
+  public static getLocationId(dimensionLocation: DimensionLocation, fixed = false) {
     const {dimension, ...location} = dimensionLocation;
     const dimensionShortName = this.getDimensionShortName(dimension);
     if (!dimensionShortName) {
       throw new Error(`Invalid dimension: ${dimension.id}`);
     }
-    return `${dimensionShortName}${location.x}_${location.y}_${location.z}`.replaceAll('-', 'f');
+    return `${dimensionShortName}${this.toFixed(location.x, 2, fixed)}_${this.toFixed(location.y, 2, fixed)}_${this.toFixed(location.z, 2, fixed)}`.replaceAll('-', 'f');
   }
 
   public static isVector3(value: any): value is Vector3 {

@@ -56,9 +56,14 @@ export class GameObjectDatabase {
         this._dataMap.clear();
         this._dirtyDataIdList = [];
         this._dirtyDataIdBuffer = [];
-        dataIdList.forEach((identifier) => {
+        this.clearDynamicProperties(dataIdList);
+    }
+    clearDynamicProperties(dataIdList) {
+        (dataIdList !== null && dataIdList !== void 0 ? dataIdList : Array.from(this._dataMap.keys())).forEach((identifier) => {
             this._saveData(UniqueIdUtils.RuntimeId, identifier, undefined);
         });
+    }
+    _onFlushFinished() {
     }
     _beginFlush(runtimeId) {
         Utils.assertInvokedByTendrock(runtimeId);
@@ -69,6 +74,7 @@ export class GameObjectDatabase {
         this._dirtyDataIdList = this._dirtyDataIdBuffer;
         this._isFlushing = false;
         this._dirtyDataIdBuffer = [];
+        this._onFlushFinished();
     }
     _getDirtyDataIdList(runtimeId) {
         Utils.assertInvokedByTendrock(runtimeId);

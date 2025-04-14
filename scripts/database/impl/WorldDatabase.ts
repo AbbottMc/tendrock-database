@@ -2,7 +2,7 @@ import {GameObjectDatabase} from "../GameObjectDatabase";
 import {World} from "@minecraft/server";
 import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
 import {Utils} from "../helper/Utils";
-import {NamespacedDatabaseManager} from "../manager/NamespacedDatabaseManager";
+import {NamespacedDatabaseManager} from "../manager";
 
 export class WorldDatabase extends GameObjectDatabase<World> {
   constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly world: World, initialIdList?: [string, string][]) {

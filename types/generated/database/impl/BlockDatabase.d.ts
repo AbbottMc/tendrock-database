@@ -1,7 +1,7 @@
 import { GameObjectDatabase } from "../GameObjectDatabase";
 import { Block } from "@minecraft/server";
 import { TendrockDynamicPropertyValue } from "../NamespacedDynamicProperty";
-import { NamespacedDatabaseManager } from "../manager/NamespacedDatabaseManager";
+import { NamespacedDatabaseManager } from "../manager";
 export declare class BlockDatabase extends GameObjectDatabase<Block> {
     protected readonly block: Block;
     constructor(namespace: string, manager: NamespacedDatabaseManager, block: Block, initialIdList?: [string, string][]);

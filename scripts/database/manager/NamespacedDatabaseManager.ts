@@ -2,7 +2,7 @@ import {Block, Entity, ItemStack, world, World} from "@minecraft/server";
 import {BlockDatabase, EntityDatabase, ItemStackDatabase, WorldDatabase} from "../impl";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
 import {GameObjectDatabase} from "../GameObjectDatabase";
-import {SetMap} from "@tenolib/map";
+import {BetterSet, SetMap} from "@tenolib/map";
 import {DatabaseManager} from "./DatabaseManager";
 import {Utils} from "../helper/Utils";
 import {DatabaseTypes} from "../DatabaseTypes";
@@ -29,8 +29,8 @@ export class NamespacedDatabaseManager {
   private _worldInitialIdList: [string, string][] | undefined = [];
 
   private _isFlushing = false;
-  private _dirtyDatabaseList = [] as GameObjectDatabase<any>[];
-  private _dirtyDatabaseBuffer = [] as GameObjectDatabase<any>[];
+  private _dirtyDatabaseList = new BetterSet<GameObjectDatabase<any>>();
+  private _dirtyDatabaseBuffer = new BetterSet<GameObjectDatabase<any>>();
 
   protected constructor(protected readonly namespace: string, private readonly _parentManager: DatabaseManager) {
   }
@@ -43,9 +43,18 @@ export class NamespacedDatabaseManager {
   public _markDirty(runtimeId: string, dataBase: GameObjectDatabase<any>) {
     Utils.assertInvokedByTendrock(runtimeId);
     const dirtyDatabases = this._isFlushing ? this._dirtyDatabaseBuffer : this._dirtyDatabaseList;
-    if (!dirtyDatabases.includes(dataBase)) {
-      dirtyDatabases.push(dataBase);
+    if (dirtyDatabases.includes(dataBase)) {
+      return;
     }
+    const uniqueId = dataBase.getUid();
+    // If database is removed or not exist, skip.
+    if (
+      !this._blockDatabaseMap.has(uniqueId) && !this._entityDatabaseMap.has(uniqueId) &&
+      !this._itemDatabaseMap.has(uniqueId) && this._worldDatabase !== dataBase
+    ) {
+      return;
+    }
+    dirtyDatabases.push(dataBase);
   }
 
   public _addBlockDataId(runtimeId: string, lid: string, propertyId: string, dataId: string) {
@@ -155,9 +164,24 @@ export class NamespacedDatabaseManager {
     }
     if (clearData) {
       database.clear();
+      this._dirtyDatabaseList.delete(database);
+      this._dirtyDatabaseBuffer.delete(database);
     }
     databaseMap.delete(uniqueId);
     gameObjectToDatabaseMap.deleteValue(uniqueId, database);
+  }
+
+  public _addDatabase<T extends Block | Entity | ItemStack | World>(runtimeId: string, database: DatabaseTypeBy<T>) {
+    Utils.assertInvokedByTendrock(runtimeId);
+    const {uniqueId, databaseMap, gameObjectToDatabaseMap} = this._prepare(database.getGameObject());
+    if (!databaseMap || !gameObjectToDatabaseMap || !uniqueId) {
+      return;
+    }
+    if (databaseMap.has(uniqueId)) {
+      return;
+    }
+    databaseMap.set(uniqueId, database);
+    gameObjectToDatabaseMap.addValue(uniqueId, database);
   }
 
   public _beginFlush(runtimeId: string) {
@@ -169,7 +193,7 @@ export class NamespacedDatabaseManager {
     Utils.assertInvokedByTendrock(runtimeId);
     this._dirtyDatabaseList = this._dirtyDatabaseBuffer;
     this._isFlushing = false;
-    this._dirtyDatabaseBuffer = [];
+    this._dirtyDatabaseBuffer = new BetterSet();
   }
 
   public getDirtyDatabaseList() {

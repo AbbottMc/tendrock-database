@@ -8,7 +8,8 @@ export interface IdentifierParseResult {
 export declare class Utils {
     static assertInvokedByTendrock(runtimeId: string): void;
     static getDimensionShortName(dimension: Dimension): "o" | "n" | "e" | undefined;
-    static getLocationId(dimensionLocation: DimensionLocation): string;
+    static toFixed(num: number, precision?: number, isFixed?: boolean): string | number;
+    static getLocationId(dimensionLocation: DimensionLocation, fixed?: boolean): string;
     static isVector3(value: any): value is Vector3;
     static serializeData(value: TendrockDynamicPropertyValue): DynamicPropertyValue;
     static deserializeData(value: DynamicPropertyValue): TendrockDynamicPropertyValue;

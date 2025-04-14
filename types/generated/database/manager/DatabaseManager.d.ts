@@ -14,6 +14,7 @@ export declare class DatabaseManager {
     private _blockToDatabaseMap;
     private _itemToDatabaseMap;
     private _entityToDatabaseMap;
+    private _changingEntityDatabaseBuffer;
     constructor();
     private _loadAndParseWorldDynamicPropertiesGenerator;
     private _loadWorldDynamicProperties;
@@ -42,5 +43,10 @@ export declare class DatabaseManager {
     _getBlockToDatabaseMap(runtimeId: string): SetMap<string, BlockDatabase>;
     _getEntityToDatabaseMap(runtimeId: string): SetMap<string, EntityDatabase>;
     _getItemToDatabaseMap(runtimeId: string): SetMap<string, ItemStackDatabase>;
+    _setChangingEntityDatabaseBuffer(runtimeId: string, locationId: string, entityDatabase: EntityDatabase): void;
+    _getChangingEntityDatabaseBuffer(runtimeId: string, locationId: string): {
+        entityDatabase: EntityDatabase | undefined;
+        cleanBuffer: () => void;
+    };
 }
 export declare const databaseManager: DatabaseManager;

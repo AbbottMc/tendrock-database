@@ -3,7 +3,7 @@ import {Block, world} from "@minecraft/server";
 import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
 import {Utils} from "../helper/Utils";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
-import {NamespacedDatabaseManager} from "../manager/NamespacedDatabaseManager";
+import {NamespacedDatabaseManager} from "../manager";
 
 export class BlockDatabase extends GameObjectDatabase<Block> {
   constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly block: Block, initialIdList?: [string, string][]) {
