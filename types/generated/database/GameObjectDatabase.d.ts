@@ -21,6 +21,7 @@ export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack |
     protected getInstanceImpl<T>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent: boolean, options?: unknown): T | undefined;
     getInstanceOrCreate<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
     getInstance<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined;
+    getInstanceIfPresent<T>(identifier: string): T | undefined;
     delete(identifier: string): void;
     forEach(callback: (identifier: string, value: TendrockDynamicPropertyValue) => void): void;
     size(): number;

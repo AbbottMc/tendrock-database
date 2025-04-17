@@ -121,6 +121,11 @@ export class DatabaseManager {
     return database?.getInstance(identifier, objectConstructor, options);
   }
 
+  public getDataInstanceIfPresent<T>(namespace: string, gameObject: GameObjectType, identifier: string): T | undefined {
+    const database = this.get(namespace, gameObject);
+    return database?.getInstanceIfPresent(identifier);
+  }
+
   public getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
     const database = this.getOrCreate(namespace, gameObject);
     return database.getInstanceOrCreate(identifier, objectConstructor, options);

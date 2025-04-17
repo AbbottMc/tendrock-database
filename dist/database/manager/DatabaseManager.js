@@ -107,6 +107,10 @@ export class DatabaseManager {
         const database = this.get(namespace, gameObject);
         return database === null || database === void 0 ? void 0 : database.getInstance(identifier, objectConstructor, options);
     }
+    getDataInstanceIfPresent(namespace, gameObject, identifier) {
+        const database = this.get(namespace, gameObject);
+        return database === null || database === void 0 ? void 0 : database.getInstanceIfPresent(identifier);
+    }
     getDataInstanceOrCreate(namespace, gameObject, identifier, objectConstructor, options) {
         const database = this.getOrCreate(namespace, gameObject);
         return database.getInstanceOrCreate(identifier, objectConstructor, options);

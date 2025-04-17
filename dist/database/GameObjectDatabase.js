@@ -52,6 +52,15 @@ export class GameObjectDatabase {
     getInstance(identifier, objectConstructor, options) {
         return this.getInstanceImpl(identifier, objectConstructor, false, options);
     }
+    getInstanceIfPresent(identifier) {
+        const retObj = this.get(identifier);
+        if (!retObj || typeof retObj !== 'object')
+            return undefined;
+        if (retObj.constructor.name === 'Object') {
+            return undefined;
+        }
+        return retObj;
+    }
     delete(identifier) {
         this._dataMap.delete(identifier);
         this._markDirty(identifier);

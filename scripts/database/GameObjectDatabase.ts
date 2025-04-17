@@ -68,6 +68,15 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     return this.getInstanceImpl(identifier, objectConstructor, false, options);
   }
 
+  public getInstanceIfPresent<T>(identifier: string): T | undefined {
+    const retObj = this.get(identifier);
+    if (!retObj || typeof retObj !== 'object') return undefined;
+    if (retObj.constructor.name === 'Object') {
+      return undefined;
+    }
+    return retObj as T;
+  }
+
   public delete(identifier: string) {
     this._dataMap.delete(identifier);
     this._markDirty(identifier);

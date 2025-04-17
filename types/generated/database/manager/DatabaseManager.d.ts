@@ -33,6 +33,7 @@ export declare class DatabaseManager {
     setData(namespace: string, gameObject: GameObjectType, identifier: string, value: TendrockDynamicPropertyValue): void;
     getData<T extends TendrockDynamicPropertyValue>(namespace: string, gameObject: GameObjectType, identifier: string): T;
     getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined;
+    getDataInstanceIfPresent<T>(namespace: string, gameObject: GameObjectType, identifier: string): T | undefined;
     getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
     remove(namespace: string, gameObject: GameObjectType, clearData?: boolean): void;
     private _prepare;
