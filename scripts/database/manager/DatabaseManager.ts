@@ -8,6 +8,8 @@ import {SetMap} from "@tenolib/map";
 import {BlockDatabase, EntityDatabase, ItemStackDatabase} from "../impl";
 import {DatabaseTypes} from "../DatabaseTypes";
 
+export type Constructor<T> = new (...args: any[]) => T;
+export type GameObjectType = Block | Entity | ItemStack | World;
 
 export class DatabaseManager {
   private _databaseManagerMap = new Map<string, NamespacedDatabaseManager>();
@@ -104,22 +106,32 @@ export class DatabaseManager {
     return databaseManager.get(gameObject);
   }
 
-  public setData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string, value: TendrockDynamicPropertyValue) {
+  public setData(namespace: string, gameObject: GameObjectType, identifier: string, value: TendrockDynamicPropertyValue) {
     const database = this.getOrCreate(namespace, gameObject);
     database.set(identifier, value);
   }
 
-  public getData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string): TendrockDynamicPropertyValue {
+  public getData<T extends TendrockDynamicPropertyValue>(namespace: string, gameObject: GameObjectType, identifier: string): T {
     const database = this.get(namespace, gameObject);
-    return database?.get(identifier);
+    return database?.get(identifier) as T;
   }
 
-  public remove<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, clearData = false): void {
+  public getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>): T | undefined {
+    const database = this.get(namespace, gameObject);
+    return database?.getInstance(identifier, objectConstructor);
+  }
+
+  public getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>): T {
+    const database = this.getOrCreate(namespace, gameObject);
+    return database.getInstanceOrCreate(identifier, objectConstructor);
+  }
+
+  public remove(namespace: string, gameObject: GameObjectType, clearData = false): void {
     const databaseManager = this._getNamespacedManager(namespace);
     databaseManager?.remove(gameObject, clearData);
   }
 
-  private _prepare<T extends Block | Entity | ItemStack | World>(gameObject: T): {
+  private _prepare(gameObject: GameObjectType): {
     uniqueId: string | undefined,
     gameObjectToDatabaseMap?: SetMap<string, GameObjectDatabase<any>>
   } {
@@ -138,12 +150,10 @@ export class DatabaseManager {
         uniqueId: UniqueIdUtils.getItemUniqueId(gameObject),
         gameObjectToDatabaseMap: this._itemToDatabaseMap,
       }
-    } else if (gameObject instanceof World) {
+    } else {
       return {
         uniqueId: 'world@0',
       }
-    } else {
-      throw new Error(`Invalid game object type.`);
     }
   }
 

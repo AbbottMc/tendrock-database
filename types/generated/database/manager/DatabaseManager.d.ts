@@ -5,6 +5,8 @@ import { TendrockDynamicPropertyValue } from "../NamespacedDynamicProperty";
 import { SetMap } from "@tenolib/map";
 import { BlockDatabase, EntityDatabase, ItemStackDatabase } from "../impl";
 import { DatabaseTypes } from "../DatabaseTypes";
+export type Constructor<T> = new (...args: any[]) => T;
+export type GameObjectType = Block | Entity | ItemStack | World;
 export declare class DatabaseManager {
     private _databaseManagerMap;
     private _isInitialized;
@@ -28,9 +30,11 @@ export declare class DatabaseManager {
     isReady(): boolean;
     getOrCreate<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T>;
     get<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T> | undefined;
-    setData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string, value: TendrockDynamicPropertyValue): void;
-    getData<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, identifier: string): TendrockDynamicPropertyValue;
-    remove<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T, clearData?: boolean): void;
+    setData(namespace: string, gameObject: GameObjectType, identifier: string, value: TendrockDynamicPropertyValue): void;
+    getData<T extends TendrockDynamicPropertyValue>(namespace: string, gameObject: GameObjectType, identifier: string): T;
+    getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>): T | undefined;
+    getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>): T;
+    remove(namespace: string, gameObject: GameObjectType, clearData?: boolean): void;
     private _prepare;
     getDatabaseListByGameObject<T extends Block | Entity | ItemStack | World>(gameObject: T): DatabaseTypeBy<T>[];
     getDatabaseList<T extends DatabaseTypes>(namespace: string, type: T): DatabaseTypeMap[T][];

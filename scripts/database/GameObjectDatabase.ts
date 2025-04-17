@@ -1,7 +1,7 @@
 import {NamespacedDynamicProperty, TendrockDynamicPropertyValue} from "./NamespacedDynamicProperty";
 import {Block, Entity, ItemStack, World} from "@minecraft/server";
 import {UniqueIdUtils} from "./helper/UniqueIdUtils";
-import {NamespacedDatabaseManager} from "./manager";
+import {Constructor, NamespacedDatabaseManager} from "./manager";
 import {Utils} from "./helper/Utils";
 
 export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
@@ -39,6 +39,33 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
 
   public get(identifier: string): TendrockDynamicPropertyValue {
     return this._dataMap.get(identifier);
+  }
+
+  protected _canSetAsInstance(obj: any): obj is TendrockDynamicPropertyValue {
+    return obj.toJSON !== undefined;
+  }
+
+
+  protected getInstanceImpl<T>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent = false): T | undefined {
+    const retObj = this.get(identifier);
+    if (!createIfAbsent && !retObj) return undefined;
+    if (retObj instanceof objectConstructor) {
+      return retObj;
+    }
+    const ret = new objectConstructor(retObj);
+    if (!this._canSetAsInstance(ret)) {
+      throw new Error(`Cannot set instance of ${objectConstructor.name} into ${this.constructor.name} because it doesnt have "toJSON" method.`);
+    }
+    this.set(identifier, ret);
+    return ret;
+  }
+
+  public getInstanceOrCreate<T>(identifier: string, objectConstructor: Constructor<T>): T {
+    return this.getInstanceImpl(identifier, objectConstructor, true)!;
+  }
+
+  public getInstance<T>(identifier: string, objectConstructor: Constructor<T>): T | undefined {
+    return this.getInstanceImpl(identifier, objectConstructor);
   }
 
   public delete(identifier: string) {

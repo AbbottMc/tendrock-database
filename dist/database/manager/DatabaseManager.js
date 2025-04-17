@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { Block, Entity, EntityInitializationCause, ItemStack, system, World, world } from "@minecraft/server";
+import { Block, Entity, EntityInitializationCause, ItemStack, system, world } from "@minecraft/server";
 import { NamespacedDatabaseManager } from "./NamespacedDatabaseManager";
 import { UniqueIdUtils } from "../helper/UniqueIdUtils";
 import { Utils } from "../helper/Utils";
@@ -103,6 +103,14 @@ export class DatabaseManager {
         const database = this.get(namespace, gameObject);
         return database === null || database === void 0 ? void 0 : database.get(identifier);
     }
+    getDataInstance(namespace, gameObject, identifier, objectConstructor) {
+        const database = this.get(namespace, gameObject);
+        return database === null || database === void 0 ? void 0 : database.getInstance(identifier, objectConstructor);
+    }
+    getDataInstanceOrCreate(namespace, gameObject, identifier, objectConstructor) {
+        const database = this.getOrCreate(namespace, gameObject);
+        return database.getInstanceOrCreate(identifier, objectConstructor);
+    }
     remove(namespace, gameObject, clearData = false) {
         const databaseManager = this._getNamespacedManager(namespace);
         databaseManager === null || databaseManager === void 0 ? void 0 : databaseManager.remove(gameObject, clearData);
@@ -126,13 +134,10 @@ export class DatabaseManager {
                 gameObjectToDatabaseMap: this._itemToDatabaseMap,
             };
         }
-        else if (gameObject instanceof World) {
+        else {
             return {
                 uniqueId: 'world@0',
             };
-        }
-        else {
-            throw new Error(`Invalid game object type.`);
         }
     }
     getDatabaseListByGameObject(gameObject) {

@@ -1,6 +1,6 @@
 import { NamespacedDynamicProperty, TendrockDynamicPropertyValue } from "./NamespacedDynamicProperty";
 import { Block, Entity, ItemStack, World } from "@minecraft/server";
-import { NamespacedDatabaseManager } from "./manager";
+import { Constructor, NamespacedDatabaseManager } from "./manager";
 export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
     readonly namespace: string;
     readonly parentManager: NamespacedDatabaseManager;
@@ -17,6 +17,10 @@ export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack |
     getUid(): string;
     set(identifier: string, value: TendrockDynamicPropertyValue): void;
     get(identifier: string): TendrockDynamicPropertyValue;
+    protected _canSetAsInstance(obj: any): obj is TendrockDynamicPropertyValue;
+    protected getInstanceImpl<T>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent?: boolean): T | undefined;
+    getInstanceOrCreate<T>(identifier: string, objectConstructor: Constructor<T>): T;
+    getInstance<T>(identifier: string, objectConstructor: Constructor<T>): T | undefined;
     delete(identifier: string): void;
     forEach(callback: (identifier: string, value: TendrockDynamicPropertyValue) => void): void;
     size(): number;
