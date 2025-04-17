@@ -7,8 +7,8 @@ import {DatabaseManager} from "./DatabaseManager";
 import {Utils} from "../helper/Utils";
 import {DatabaseTypes} from "../DatabaseTypes";
 
-export type DatabaseTypeBy<T> = T extends Block ? BlockDatabase : T extends Entity ? EntityDatabase : T extends ItemStack ? ItemStackDatabase : WorldDatabase;
-export type DatabaseFactory<T extends Block | Entity | ItemStack | World> = {
+export type DatabaseTypeBy<T> = T extends (string | Block) ? BlockDatabase : T extends Entity ? EntityDatabase : T extends ItemStack ? ItemStackDatabase : WorldDatabase;
+export type DatabaseFactory<T extends Block | Entity | ItemStack | World | string> = {
   create(namespace: string, manager: NamespacedDatabaseManager, gameObject: T, initialIdList?: [string, string][]): InstanceType<DatabaseFactory<T>>;
 } & (new (...args: any[]) => any);
 
@@ -70,14 +70,14 @@ export class NamespacedDatabaseManager {
     this._worldInitialIdList.push([propertyId, dataId]);
   }
 
-  private _prepare<T extends Block | Entity | ItemStack | World>(gameObject: T): {
+  private _prepare<T extends Block | Entity | ItemStack | World | string>(gameObject: T): {
     uniqueId: string | undefined,
     databaseMap: Map<string, DatabaseTypeBy<T>> | undefined,
     databaseType: DatabaseFactory<T>,
     gameObjectToDatabaseMap?: SetMap<string, GameObjectDatabase<any>>,
     initialIdList?: [string, string][]
   } {
-    if (gameObject instanceof Block) {
+    if (typeof gameObject === 'string' || gameObject instanceof Block) {
       const uniqueId = UniqueIdUtils.getBlockUniqueId(gameObject);
       const databaseMap = this._blockDatabaseMap as Map<string, DatabaseTypeBy<T>>;
       const databaseType = BlockDatabase as DatabaseFactory<T>;
@@ -107,7 +107,7 @@ export class NamespacedDatabaseManager {
     }
   }
 
-  public getOrCreate<T extends Block | Entity | ItemStack | World>(gameObject: T): DatabaseTypeBy<T> {
+  public getOrCreate<T extends Block | Entity | ItemStack | World | string>(gameObject: T): DatabaseTypeBy<T> {
     const {uniqueId, databaseMap, databaseType, gameObjectToDatabaseMap, initialIdList} = this._prepare(gameObject);
     // Is world database
     if (!uniqueId || !databaseMap || !gameObjectToDatabaseMap) {
@@ -127,7 +127,7 @@ export class NamespacedDatabaseManager {
     return database;
   }
 
-  public get<T extends Block | Entity | ItemStack | World>(gameObject: T): DatabaseTypeBy<T> | undefined {
+  public get<T extends Block | Entity | ItemStack | World | string>(gameObject: T): DatabaseTypeBy<T> | undefined {
     const {uniqueId, databaseMap} = this._prepare(gameObject);
     if (!uniqueId || !databaseMap) {
       return undefined;
@@ -153,7 +153,7 @@ export class NamespacedDatabaseManager {
     return this._worldDatabase;
   }
 
-  public remove<T extends Block | Entity | ItemStack | World>(gameObject: T, clearData = false) {
+  public remove<T extends Block | Entity | ItemStack | World | string>(gameObject: T, clearData = false) {
     const {uniqueId, databaseMap, gameObjectToDatabaseMap} = this._prepare(gameObject);
     if (!uniqueId || !databaseMap || !gameObjectToDatabaseMap) {
       return;
@@ -171,7 +171,7 @@ export class NamespacedDatabaseManager {
     gameObjectToDatabaseMap.deleteValue(uniqueId, database);
   }
 
-  public _addDatabase<T extends Block | Entity | ItemStack | World>(runtimeId: string, database: DatabaseTypeBy<T>) {
+  public _addDatabase<T extends Block | Entity | ItemStack | World | string>(runtimeId: string, database: DatabaseTypeBy<T>) {
     Utils.assertInvokedByTendrock(runtimeId);
     const {uniqueId, databaseMap, gameObjectToDatabaseMap} = this._prepare(database.getGameObject());
     if (!databaseMap || !gameObjectToDatabaseMap || !uniqueId) {

@@ -18,7 +18,7 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-import { system } from "@minecraft/server";
+import { system, world } from "@minecraft/server";
 import { NamespacedDynamicProperty } from "../NamespacedDynamicProperty";
 import { UniqueIdUtils } from "./UniqueIdUtils";
 export class Utils {
@@ -48,6 +48,45 @@ export class Utils {
             throw new Error(`Invalid dimension: ${dimension.id}`);
         }
         return `${dimensionShortName}${this.toFixed(location.x, 2, fixed)}_${this.toFixed(location.y, 2, fixed)}_${this.toFixed(location.z, 2, fixed)}`.replaceAll('-', 'f');
+    }
+    static isLocationId(str) {
+        return /^[one](f\d+|\d+)_(f\d+|\d+)_(f\d+|\d+)$/g.test(str);
+    }
+    static lidToVec(lid) {
+        const lidSub = lid.substring(1);
+        const lidSplit = lidSub.replaceAll('f', '-').split('_');
+        return {
+            x: Number(lidSplit[0]),
+            y: Number(lidSplit[1]),
+            z: Number(lidSplit[2])
+        };
+    }
+    static lidToDimension(lid) {
+        if (!this.isLocationId(lid)) {
+            throw new Error(`Invalid location id: ${lid}`);
+        }
+        const dimensionShortName = lid.substring(0, 1);
+        switch (dimensionShortName) {
+            case 'o':
+                return world.getDimension("minecraft:overworld");
+            case 'n':
+                return world.getDimension("minecraft:nether");
+            case 'e':
+                return world.getDimension("minecraft:the_end");
+            default:
+                throw new Error(`Invalid dimension short name: ${dimensionShortName}`);
+        }
+    }
+    static lidToDimensionLocation(lid) {
+        if (!this.isLocationId(lid))
+            return {};
+        return Object.assign({ dimension: this.lidToDimension(lid) }, this.lidToVec(lid));
+    }
+    static getDimensionLocation(locationOrLid) {
+        if (typeof locationOrLid === 'string') {
+            return this.lidToDimensionLocation(locationOrLid);
+        }
+        return locationOrLid;
     }
     static isVector3(value) {
         return typeof value === "object" && value.x !== undefined && value.y !== undefined && value.z !== undefined;

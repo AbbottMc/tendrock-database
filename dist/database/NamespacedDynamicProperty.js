@@ -19,11 +19,11 @@ export class NamespacedDynamicProperty {
         }
         return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${identifier}`;
     }
-    getBlockDataIdentifier(blockOrLid, identifier) {
+    getBlockDataIdentifier(locationOrLid, identifier) {
         if (identifier.includes('-')) {
             throw new Error(`Invalid identifier: "${identifier}"`);
         }
-        return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${typeof blockOrLid === 'string' ? blockOrLid : Utils.getLocationId(blockOrLid)}-${identifier}`;
+        return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${typeof locationOrLid === 'string' ? locationOrLid : Utils.getLocationId(locationOrLid)}-${identifier}`;
     }
     extractDataIdentifier(dataIdentifier) {
         return dataIdentifier.split('-')[1];

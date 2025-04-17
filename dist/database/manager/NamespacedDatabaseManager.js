@@ -47,7 +47,7 @@ export class NamespacedDatabaseManager {
         this._worldInitialIdList.push([propertyId, dataId]);
     }
     _prepare(gameObject) {
-        if (gameObject instanceof Block) {
+        if (typeof gameObject === 'string' || gameObject instanceof Block) {
             const uniqueId = UniqueIdUtils.getBlockUniqueId(gameObject);
             const databaseMap = this._blockDatabaseMap;
             const databaseType = BlockDatabase;

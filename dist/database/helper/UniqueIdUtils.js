@@ -4,8 +4,13 @@ export class UniqueIdUtils {
     static getItemUniqueId(itemStack) {
         return this._itemUniqueIdHelper.getItemUniqueIdOrCreate(itemStack);
     }
-    static getBlockUniqueId(block) {
-        return Utils.getLocationId(block);
+    static getBlockUniqueId(locationOrLid) {
+        if (typeof locationOrLid === 'string') {
+            if (!Utils.isLocationId(locationOrLid))
+                throw new Error(`Invalid block location id: "${locationOrLid}"`);
+            return locationOrLid;
+        }
+        return Utils.getLocationId(locationOrLid);
     }
     static getEntityUniqueId(entity) {
         return entity.id;

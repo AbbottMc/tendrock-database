@@ -6,7 +6,7 @@ import { SetMap } from "@tenolib/map";
 import { BlockDatabase, EntityDatabase, ItemStackDatabase } from "../impl";
 import { DatabaseTypes } from "../DatabaseTypes";
 export type Constructor<T> = new (...args: any[]) => T;
-export type GameObjectType = Block | Entity | ItemStack | World;
+export type GameObjectType = Block | Entity | ItemStack | World | string;
 export declare class DatabaseManager {
     private _databaseManagerMap;
     private _isInitialized;
@@ -28,8 +28,8 @@ export declare class DatabaseManager {
     private _doReady;
     whenReady(callback: () => void): (() => void) | undefined;
     isReady(): boolean;
-    getOrCreate<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T>;
-    get<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T> | undefined;
+    getOrCreate<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T>;
+    get<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T> | undefined;
     setData(namespace: string, gameObject: GameObjectType, identifier: string, value: TendrockDynamicPropertyValue): void;
     getData<T extends TendrockDynamicPropertyValue>(namespace: string, gameObject: GameObjectType, identifier: string): T;
     getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined;

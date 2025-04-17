@@ -1,5 +1,5 @@
 import {ItemUniqueIdentifyHelper} from "./ItemUniqueIdentifyHelper";
-import {Block, Entity, ItemStack} from "@minecraft/server";
+import {DimensionLocation, Entity, ItemStack} from "@minecraft/server";
 import {Utils} from "./Utils";
 
 export class UniqueIdUtils {
@@ -10,8 +10,12 @@ export class UniqueIdUtils {
     return this._itemUniqueIdHelper.getItemUniqueIdOrCreate(itemStack);
   }
 
-  public static getBlockUniqueId(block: Block) {
-    return Utils.getLocationId(block);
+  public static getBlockUniqueId(locationOrLid: DimensionLocation | string) {
+    if (typeof locationOrLid === 'string') {
+      if (!Utils.isLocationId(locationOrLid)) throw new Error(`Invalid block location id: "${locationOrLid}"`);
+      return locationOrLid;
+    }
+    return Utils.getLocationId(locationOrLid);
   }
 
   public static getEntityUniqueId(entity: Entity) {

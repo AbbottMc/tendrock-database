@@ -10,6 +10,11 @@ export declare class Utils {
     static getDimensionShortName(dimension: Dimension): "o" | "n" | "e" | undefined;
     static toFixed(num: number, precision?: number, isFixed?: boolean): string | number;
     static getLocationId(dimensionLocation: DimensionLocation, fixed?: boolean): string;
+    static isLocationId(str: string): boolean;
+    static lidToVec(lid: string): Vector3;
+    static lidToDimension(lid: string): Dimension;
+    static lidToDimensionLocation(lid: string): DimensionLocation;
+    static getDimensionLocation(locationOrLid: string | DimensionLocation): DimensionLocation;
     static isVector3(value: any): value is Vector3;
     static serializeData(value: TendrockDynamicPropertyValue): DynamicPropertyValue;
     static deserializeData(value: DynamicPropertyValue): TendrockDynamicPropertyValue;

@@ -4,8 +4,8 @@ import { GameObjectDatabase } from "../GameObjectDatabase";
 import { BetterSet } from "@tenolib/map";
 import { DatabaseManager } from "./DatabaseManager";
 import { DatabaseTypes } from "../DatabaseTypes";
-export type DatabaseTypeBy<T> = T extends Block ? BlockDatabase : T extends Entity ? EntityDatabase : T extends ItemStack ? ItemStackDatabase : WorldDatabase;
-export type DatabaseFactory<T extends Block | Entity | ItemStack | World> = {
+export type DatabaseTypeBy<T> = T extends (string | Block) ? BlockDatabase : T extends Entity ? EntityDatabase : T extends ItemStack ? ItemStackDatabase : WorldDatabase;
+export type DatabaseFactory<T extends Block | Entity | ItemStack | World | string> = {
     create(namespace: string, manager: NamespacedDatabaseManager, gameObject: T, initialIdList?: [string, string][]): InstanceType<DatabaseFactory<T>>;
 } & (new (...args: any[]) => any);
 export type DatabaseTypeMap = {
@@ -32,12 +32,12 @@ export declare class NamespacedDatabaseManager {
     _addBlockDataId(runtimeId: string, lid: string, propertyId: string, dataId: string): void;
     _addWorldDataId(runtimeId: string, propertyId: string, dataId: string): void;
     private _prepare;
-    getOrCreate<T extends Block | Entity | ItemStack | World>(gameObject: T): DatabaseTypeBy<T>;
-    get<T extends Block | Entity | ItemStack | World>(gameObject: T): DatabaseTypeBy<T> | undefined;
+    getOrCreate<T extends Block | Entity | ItemStack | World | string>(gameObject: T): DatabaseTypeBy<T>;
+    get<T extends Block | Entity | ItemStack | World | string>(gameObject: T): DatabaseTypeBy<T> | undefined;
     getDatabaseList<T extends DatabaseTypes>(type: T): DatabaseTypeMap[T][];
     getWorldDatabase(): DatabaseTypeBy<World> | undefined;
-    remove<T extends Block | Entity | ItemStack | World>(gameObject: T, clearData?: boolean): void;
-    _addDatabase<T extends Block | Entity | ItemStack | World>(runtimeId: string, database: DatabaseTypeBy<T>): void;
+    remove<T extends Block | Entity | ItemStack | World | string>(gameObject: T, clearData?: boolean): void;
+    _addDatabase<T extends Block | Entity | ItemStack | World | string>(runtimeId: string, database: DatabaseTypeBy<T>): void;
     _beginFlush(runtimeId: string): void;
     _endFlush(runtimeId: string): void;
     getDirtyDatabaseList(): BetterSet<GameObjectDatabase<any>>;

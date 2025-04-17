@@ -1,4 +1,4 @@
-import {Dimension, DimensionLocation, system, Vector3} from "@minecraft/server";
+import {Dimension, DimensionLocation, system, Vector3, world} from "@minecraft/server";
 import {
   DynamicPropertyValue, NamespacedDynamicProperty, TendrockDynamicPropertyValue
 } from "../NamespacedDynamicProperty";
@@ -41,6 +41,49 @@ export class Utils {
       throw new Error(`Invalid dimension: ${dimension.id}`);
     }
     return `${dimensionShortName}${this.toFixed(location.x, 2, fixed)}_${this.toFixed(location.y, 2, fixed)}_${this.toFixed(location.z, 2, fixed)}`.replaceAll('-', 'f');
+  }
+
+  public static isLocationId(str: string) {
+    return /^[one](f\d+|\d+)_(f\d+|\d+)_(f\d+|\d+)$/g.test(str);
+  }
+
+  public static lidToVec(lid: string): Vector3 {
+    const lidSub = lid.substring(1);
+    const lidSplit = lidSub.replaceAll('f', '-').split('_');
+    return {
+      x: Number(lidSplit[0]),
+      y: Number(lidSplit[1]),
+      z: Number(lidSplit[2])
+    }
+  }
+
+  public static lidToDimension(lid: string): Dimension {
+    if (!this.isLocationId(lid)) {
+      throw new Error(`Invalid location id: ${lid}`);
+    }
+    const dimensionShortName = lid.substring(0, 1);
+    switch (dimensionShortName) {
+      case 'o':
+        return world.getDimension("minecraft:overworld");
+      case 'n':
+        return world.getDimension("minecraft:nether");
+      case 'e':
+        return world.getDimension("minecraft:the_end");
+      default :
+        throw new Error(`Invalid dimension short name: ${dimensionShortName}`);
+    }
+  }
+
+  public static lidToDimensionLocation(lid: string): DimensionLocation {
+    if (!this.isLocationId(lid)) return {} as DimensionLocation;
+    return {dimension: this.lidToDimension(lid), ...this.lidToVec(lid)};
+  }
+
+  public static getDimensionLocation(locationOrLid: string | DimensionLocation) {
+    if (typeof locationOrLid === 'string') {
+      return this.lidToDimensionLocation(locationOrLid);
+    }
+    return locationOrLid;
   }
 
   public static isVector3(value: any): value is Vector3 {

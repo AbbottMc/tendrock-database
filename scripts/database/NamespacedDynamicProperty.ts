@@ -1,4 +1,4 @@
-import {Block, Entity, ItemStack, Vector3, world} from "@minecraft/server";
+import {Block, DimensionLocation, Entity, ItemStack, Vector3, world} from "@minecraft/server";
 import {Utils} from "./helper/Utils";
 
 export type DynamicPropertyValue = boolean | number | string | Vector3 | undefined;
@@ -29,11 +29,11 @@ export class NamespacedDynamicProperty {
     return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${identifier}`;
   }
 
-  public getBlockDataIdentifier(blockOrLid: Block | string, identifier: string) {
+  public getBlockDataIdentifier(locationOrLid: DimensionLocation | string, identifier: string) {
     if (identifier.includes('-')) {
       throw new Error(`Invalid identifier: "${identifier}"`);
     }
-    return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${typeof blockOrLid === 'string' ? blockOrLid : Utils.getLocationId(blockOrLid)}-${identifier}`;
+    return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${typeof locationOrLid === 'string' ? locationOrLid : Utils.getLocationId(locationOrLid)}-${identifier}`;
   }
 
   public extractDataIdentifier(dataIdentifier: string) {
@@ -64,7 +64,7 @@ export class NamespacedDynamicProperty {
     world.setDynamicProperty(this.getDataIdentifier(identifier), Utils.serializeData(value));
   }
 
-  public putToBlock(blockOrLid: Block | string, identifier: string, value: TendrockDynamicPropertyValue) {
+  public putToBlock(blockOrLid: DimensionLocation | string, identifier: string, value: TendrockDynamicPropertyValue) {
     world.setDynamicProperty(this.getBlockDataIdentifier(blockOrLid, identifier), Utils.serializeData(value));
   }
 

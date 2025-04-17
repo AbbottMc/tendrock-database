@@ -9,7 +9,7 @@ import {BlockDatabase, EntityDatabase, ItemStackDatabase} from "../impl";
 import {DatabaseTypes} from "../DatabaseTypes";
 
 export type Constructor<T> = new (...args: any[]) => T;
-export type GameObjectType = Block | Entity | ItemStack | World;
+export type GameObjectType = Block | Entity | ItemStack | World | string;
 
 export class DatabaseManager {
   private _databaseManagerMap = new Map<string, NamespacedDatabaseManager>();
@@ -93,12 +93,12 @@ export class DatabaseManager {
     return this._isInitialized;
   }
 
-  public getOrCreate<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T> {
+  public getOrCreate<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T> {
     const databaseManager = this._getOrCreateNamespacedManager(namespace);
     return databaseManager.getOrCreate(gameObject);
   }
 
-  public get<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T> | undefined {
+  public get<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T> | undefined {
     const databaseManager = this._getNamespacedManager(namespace);
     if (!databaseManager) {
       return undefined;
