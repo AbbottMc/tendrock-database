@@ -32,25 +32,25 @@ export class GameObjectDatabase {
     _canSetAsInstance(obj) {
         return obj.toJSON !== undefined;
     }
-    getInstanceImpl(identifier, objectConstructor, createIfAbsent = false) {
+    getInstanceImpl(identifier, objectConstructor, createIfAbsent, options) {
         const retObj = this.get(identifier);
         if (!createIfAbsent && !retObj)
             return undefined;
         if (retObj instanceof objectConstructor) {
             return retObj;
         }
-        const ret = new objectConstructor(retObj);
+        const ret = new objectConstructor(retObj, options);
         if (!this._canSetAsInstance(ret)) {
             throw new Error(`Cannot set instance of ${objectConstructor.name} into ${this.constructor.name} because it doesnt have "toJSON" method.`);
         }
         this.set(identifier, ret);
         return ret;
     }
-    getInstanceOrCreate(identifier, objectConstructor) {
-        return this.getInstanceImpl(identifier, objectConstructor, true);
+    getInstanceOrCreate(identifier, objectConstructor, options) {
+        return this.getInstanceImpl(identifier, objectConstructor, true, options);
     }
-    getInstance(identifier, objectConstructor) {
-        return this.getInstanceImpl(identifier, objectConstructor);
+    getInstance(identifier, objectConstructor, options) {
+        return this.getInstanceImpl(identifier, objectConstructor, false, options);
     }
     delete(identifier) {
         this._dataMap.delete(identifier);

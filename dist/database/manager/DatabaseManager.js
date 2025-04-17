@@ -103,13 +103,13 @@ export class DatabaseManager {
         const database = this.get(namespace, gameObject);
         return database === null || database === void 0 ? void 0 : database.get(identifier);
     }
-    getDataInstance(namespace, gameObject, identifier, objectConstructor) {
+    getDataInstance(namespace, gameObject, identifier, objectConstructor, options) {
         const database = this.get(namespace, gameObject);
-        return database === null || database === void 0 ? void 0 : database.getInstance(identifier, objectConstructor);
+        return database === null || database === void 0 ? void 0 : database.getInstance(identifier, objectConstructor, options);
     }
-    getDataInstanceOrCreate(namespace, gameObject, identifier, objectConstructor) {
+    getDataInstanceOrCreate(namespace, gameObject, identifier, objectConstructor, options) {
         const database = this.getOrCreate(namespace, gameObject);
-        return database.getInstanceOrCreate(identifier, objectConstructor);
+        return database.getInstanceOrCreate(identifier, objectConstructor, options);
     }
     remove(namespace, gameObject, clearData = false) {
         const databaseManager = this._getNamespacedManager(namespace);

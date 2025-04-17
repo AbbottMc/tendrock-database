@@ -116,14 +116,14 @@ export class DatabaseManager {
     return database?.get(identifier) as T;
   }
 
-  public getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>): T | undefined {
+  public getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
     const database = this.get(namespace, gameObject);
-    return database?.getInstance(identifier, objectConstructor);
+    return database?.getInstance(identifier, objectConstructor, options);
   }
 
-  public getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>): T {
+  public getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
     const database = this.getOrCreate(namespace, gameObject);
-    return database.getInstanceOrCreate(identifier, objectConstructor);
+    return database.getInstanceOrCreate(identifier, objectConstructor, options);
   }
 
   public remove(namespace: string, gameObject: GameObjectType, clearData = false): void {

@@ -32,8 +32,8 @@ export declare class DatabaseManager {
     get<T extends Block | Entity | ItemStack | World>(namespace: string, gameObject: T): DatabaseTypeBy<T> | undefined;
     setData(namespace: string, gameObject: GameObjectType, identifier: string, value: TendrockDynamicPropertyValue): void;
     getData<T extends TendrockDynamicPropertyValue>(namespace: string, gameObject: GameObjectType, identifier: string): T;
-    getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>): T | undefined;
-    getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>): T;
+    getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined;
+    getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
     remove(namespace: string, gameObject: GameObjectType, clearData?: boolean): void;
     private _prepare;
     getDatabaseListByGameObject<T extends Block | Entity | ItemStack | World>(gameObject: T): DatabaseTypeBy<T>[];

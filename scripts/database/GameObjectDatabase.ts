@@ -46,13 +46,13 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
   }
 
 
-  protected getInstanceImpl<T>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent = false): T | undefined {
+  protected getInstanceImpl<T>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent: boolean, options?: unknown): T | undefined {
     const retObj = this.get(identifier);
     if (!createIfAbsent && !retObj) return undefined;
     if (retObj instanceof objectConstructor) {
       return retObj;
     }
-    const ret = new objectConstructor(retObj);
+    const ret = new objectConstructor(retObj, options);
     if (!this._canSetAsInstance(ret)) {
       throw new Error(`Cannot set instance of ${objectConstructor.name} into ${this.constructor.name} because it doesnt have "toJSON" method.`);
     }
@@ -60,12 +60,12 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     return ret;
   }
 
-  public getInstanceOrCreate<T>(identifier: string, objectConstructor: Constructor<T>): T {
-    return this.getInstanceImpl(identifier, objectConstructor, true)!;
+  public getInstanceOrCreate<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
+    return this.getInstanceImpl(identifier, objectConstructor, true, options)!;
   }
 
-  public getInstance<T>(identifier: string, objectConstructor: Constructor<T>): T | undefined {
-    return this.getInstanceImpl(identifier, objectConstructor);
+  public getInstance<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
+    return this.getInstanceImpl(identifier, objectConstructor, false, options);
   }
 
   public delete(identifier: string) {
