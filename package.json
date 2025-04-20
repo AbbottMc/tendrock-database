@@ -1,6 +1,6 @@
 {
   "name": "@tendrock/database",
-  "version": "0.6.1-alpha.0",
+  "version": "0.6.1-alpha.1",
   "description": "A database lib under the Tendrock ecosystem for Minecraft Bedrock Edition Script API",
   "main": "dist/index.js",
   "scripts": {
@@ -49,7 +49,7 @@
     "@minecraft/server": "^2.0.0-beta.1.21.80-preview.27",
     "@minecraft/server-ui": "^2.0.0-beta.1.21.80-preview.27",
     "@tendrock/lib": "^0.4.0-alpha.0",
-    "@tenolib/map": "^1.0.0-beta.1",
+    "@tenolib/map": "^1.2.0-beta.3",
     "@types/node": "^22.10.5",
     "babel-core": "^6.26.3",
     "babel-loader": "^8.2.5",
@@ -69,6 +69,6 @@
   },
   "peerDependencies": {
     "@minecraft/server": "^2.0.0-beta.1.21.70-stable",
-    "@tenolib/map": "^1.0.0-beta.1"
+    "@tenolib/map": "^1.2.0-beta.3"
   }
 }
