@@ -25,9 +25,9 @@ export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack |
     delete(identifier: string): void;
     forEach(callback: (identifier: string, value: TendrockDynamicPropertyValue) => void): void;
     size(): number;
-    entries(): MapIterator<[string, TendrockDynamicPropertyValue]>;
-    keys(): MapIterator<string>;
-    values(): MapIterator<TendrockDynamicPropertyValue>;
+    entries(): IterableIterator<[string, TendrockDynamicPropertyValue]>;
+    keys(): IterableIterator<string>;
+    values(): IterableIterator<TendrockDynamicPropertyValue>;
     isFlushing(): boolean;
     clear(): void;
     clearDynamicProperties(dataIdList?: string[]): void;

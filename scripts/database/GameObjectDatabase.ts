@@ -90,15 +90,15 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     return this._dataMap.size;
   }
 
-  public entries() {
+  public entries(): IterableIterator<[string, TendrockDynamicPropertyValue]> {
     return this._dataMap.entries();
   }
 
-  public keys() {
+  public keys(): IterableIterator<string> {
     return this._dataMap.keys();
   }
 
-  public values() {
+  public values(): IterableIterator<TendrockDynamicPropertyValue> {
     return this._dataMap.values();
   }
 
