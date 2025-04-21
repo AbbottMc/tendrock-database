@@ -83,7 +83,6 @@ export class NamespacedDatabaseManager {
       const databaseType = BlockDatabase as DatabaseFactory<T>;
       const gameObjectToDatabaseMap = this._parentManager._getBlockToDatabaseMap(UniqueIdUtils.RuntimeId);
       const initialIdList = this._blockInitialIdListMap.get(uniqueId);
-      this._blockInitialIdListMap.delete(uniqueId);
       return {uniqueId, databaseMap, databaseType, gameObjectToDatabaseMap, initialIdList};
     } else if (gameObject instanceof Entity) {
       const uniqueId = UniqueIdUtils.getEntityUniqueId(gameObject);
@@ -100,7 +99,6 @@ export class NamespacedDatabaseManager {
     } else if (gameObject instanceof World) {
       const databaseType = WorldDatabase as DatabaseFactory<T>;
       const initialIdList = this._worldInitialIdList;
-      this._worldInitialIdList = undefined;
       return {uniqueId: undefined, databaseMap: undefined, databaseType, initialIdList};
     } else {
       throw new Error(`Invalid game object type.`);
@@ -115,6 +113,7 @@ export class NamespacedDatabaseManager {
         return this._worldDatabase as DatabaseTypeBy<T>;
       }
       this._worldDatabase = WorldDatabase.create(this.namespace, this, world, initialIdList);
+      this._worldInitialIdList = undefined;
       return this._worldDatabase as DatabaseTypeBy<T>;
     }
     let database = databaseMap.get(uniqueId)!;
@@ -124,6 +123,7 @@ export class NamespacedDatabaseManager {
     database = databaseType.create(this.namespace, this, gameObject, initialIdList);
     databaseMap.set(uniqueId, database);
     gameObjectToDatabaseMap.addValue(uniqueId, database);
+    this._blockInitialIdListMap.delete(uniqueId);
     return database;
   }
 
