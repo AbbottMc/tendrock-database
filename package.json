@@ -1,6 +1,6 @@
 {
   "name": "@tendrock/database",
-  "version": "0.7.0-alpha.1",
+  "version": "0.7.0-alpha.2",
   "description": "A database lib under the Tendrock ecosystem for Minecraft Bedrock Edition Script API",
   "main": "dist/index.js",
   "scripts": {

@@ -54,7 +54,7 @@ export class NamespacedDatabaseManager {
         }
     }
     *_initBlockDataGenerator() {
-        if (this._blockInitialIdListMap.size <= 0) {
+        if (this._blockInitialIdListMap.size > 0) {
             const gameObjectToDatabaseMap = this._parentManager._getBlockToDatabaseMap(UniqueIdUtils.RuntimeId);
             for (const [lid, set] of this._blockInitialIdListMap) {
                 const blockDatabase = BlockDatabase.create(this.namespace, this, lid, set);
