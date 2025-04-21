@@ -40,6 +40,8 @@ export class GameObjectDatabase {
             return retObj;
         }
         const ret = new objectConstructor(retObj, options);
+        // console.log(JSON.stringify(retObj));
+        // console.log(JSON.stringify(ret));
         if (!this._canSetAsInstance(ret)) {
             throw new Error(`Cannot set instance of ${objectConstructor.name} into ${this.constructor.name} because it doesnt have "toJSON" method.`);
         }

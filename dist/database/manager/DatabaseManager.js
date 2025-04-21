@@ -191,11 +191,12 @@ export class DatabaseManager {
         database._beginFlush(UniqueIdUtils.RuntimeId);
         const dirtyIdList = database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
         for (const identifier of dirtyIdList) {
-            if (database.size() <= 0) {
+            if (database.size() <= 0 && dirtyIdList.length <= 0) {
                 yield;
                 break;
             }
             const value = database.get(identifier);
+            // console.log(`flush ${identifier}`, JSON.stringify(value));
             database._saveData(UniqueIdUtils.RuntimeId, identifier, value);
             yield;
         }
@@ -206,10 +207,11 @@ export class DatabaseManager {
         database._beginFlush(UniqueIdUtils.RuntimeId);
         const dirtyIdList = database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
         for (const identifier of dirtyIdList) {
-            if (database.size() <= 0) {
+            if (database.size() <= 0 && dirtyIdList.length <= 0) {
                 break;
             }
             const value = database.get(identifier);
+            // console.log(`flush ${identifier}`, JSON.stringify(value));
             database._saveData(UniqueIdUtils.RuntimeId, identifier, value);
         }
         database._endFlush(UniqueIdUtils.RuntimeId);
