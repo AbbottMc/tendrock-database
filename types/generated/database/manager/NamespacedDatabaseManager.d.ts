@@ -31,8 +31,16 @@ export declare class NamespacedDatabaseManager {
     _markDirty(runtimeId: string, dataBase: GameObjectDatabase<any>): void;
     _addBlockDataId(runtimeId: string, lid: string, propertyId: string, dataId: string): void;
     _addWorldDataId(runtimeId: string, propertyId: string, dataId: string): void;
+    protected _initWorldDataGenerator(): Generator<void, void, void>;
+    protected _initBlockDataGenerator(): Generator<void, void, void>;
+    _initWorldBlockDataGenerator(runtimeId: string): Generator<void, void, void>;
     private _prepare;
+    /**
+     * @deprecated Use {@link createIfAbsent} instead.
+     * @param gameObject
+     */
     getOrCreate<T extends Block | Entity | ItemStack | World | string>(gameObject: T): DatabaseTypeBy<T>;
+    createIfAbsent<T extends Block | Entity | ItemStack | World | string>(gameObject: T): DatabaseTypeBy<T>;
     get<T extends Block | Entity | ItemStack | World | string>(gameObject: T): DatabaseTypeBy<T> | undefined;
     getDatabaseList<T extends DatabaseTypes>(type: T): DatabaseTypeMap[T][];
     getWorldDatabase(): DatabaseTypeBy<World> | undefined;

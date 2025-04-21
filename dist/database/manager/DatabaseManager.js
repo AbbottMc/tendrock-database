@@ -32,7 +32,7 @@ export class DatabaseManager {
             const { namespace, lid, dataIdentifier } = Utils.parseIdentifier(id);
             if (!namespace)
                 continue;
-            const manager = this._getOrCreateNamespacedManager(namespace);
+            const manager = this._createNamespacedManagerIfAbsent(namespace);
             if (lid) {
                 manager._addBlockDataId(UniqueIdUtils.RuntimeId, lid, id, dataIdentifier);
             }
@@ -42,9 +42,15 @@ export class DatabaseManager {
             yield;
         }
     }
+    *_initWorldBlockDataGenerator() {
+        for (const [namespace, manager] of this._databaseManagerMap) {
+            yield* manager._initWorldBlockDataGenerator(UniqueIdUtils.RuntimeId);
+        }
+    }
     _loadWorldDynamicProperties() {
         return __awaiter(this, void 0, void 0, function* () {
             yield Utils.runJob(this._loadAndParseWorldDynamicPropertiesGenerator());
+            yield Utils.runJob(this._initWorldBlockDataGenerator());
             this._isInitialized = true;
             this._startAutoFlushTask();
             this._doReady();
@@ -55,7 +61,7 @@ export class DatabaseManager {
             this._loadWorldDynamicProperties();
         });
     }
-    _getOrCreateNamespacedManager(namespace) {
+    _createNamespacedManagerIfAbsent(namespace) {
         let databaseManager = this._databaseManagerMap.get(namespace);
         if (databaseManager) {
             return databaseManager;
@@ -84,9 +90,17 @@ export class DatabaseManager {
     isReady() {
         return this._isInitialized;
     }
+    /**
+     * @deprecated use {@link createIfAbsent} instead}
+     * @param namespace
+     * @param gameObject
+     */
     getOrCreate(namespace, gameObject) {
-        const databaseManager = this._getOrCreateNamespacedManager(namespace);
-        return databaseManager.getOrCreate(gameObject);
+        return this.createIfAbsent(namespace, gameObject);
+    }
+    createIfAbsent(namespace, gameObject) {
+        const databaseManager = this._createNamespacedManagerIfAbsent(namespace);
+        return databaseManager.createIfAbsent(gameObject);
     }
     get(namespace, gameObject) {
         const databaseManager = this._getNamespacedManager(namespace);
@@ -96,24 +110,55 @@ export class DatabaseManager {
         return databaseManager.get(gameObject);
     }
     setData(namespace, gameObject, identifier, value) {
-        const database = this.getOrCreate(namespace, gameObject);
+        const database = this.createIfAbsent(namespace, gameObject);
         database.set(identifier, value);
     }
     getData(namespace, gameObject, identifier) {
         const database = this.get(namespace, gameObject);
         return database === null || database === void 0 ? void 0 : database.get(identifier);
     }
+    /**
+     * @deprecated use {@link buildDataInstanceIfPresent} instead
+     * @param namespace
+     * @param gameObject
+     * @param identifier
+     * @param objectConstructor
+     * @param options
+     */
     getDataInstance(namespace, gameObject, identifier, objectConstructor, options) {
-        const database = this.get(namespace, gameObject);
-        return database === null || database === void 0 ? void 0 : database.getInstance(identifier, objectConstructor, options);
+        return this.buildDataInstanceIfPresent(namespace, gameObject, identifier, objectConstructor, options);
     }
+    buildDataInstanceIfPresent(namespace, gameObject, identifier, objectConstructor, options) {
+        const database = this.get(namespace, gameObject);
+        return database === null || database === void 0 ? void 0 : database.buildInstanceIfPresent(identifier, objectConstructor, options);
+    }
+    /**
+     * @deprecated use {@link getDataBuiltInstance} instead
+     * @param namespace
+     * @param gameObject
+     * @param identifier
+     */
     getDataInstanceIfPresent(namespace, gameObject, identifier) {
-        const database = this.get(namespace, gameObject);
-        return database === null || database === void 0 ? void 0 : database.getInstanceIfPresent(identifier);
+        return this.getDataBuiltInstance(namespace, gameObject, identifier);
     }
-    getDataInstanceOrCreate(namespace, gameObject, identifier, objectConstructor, options) {
-        const database = this.getOrCreate(namespace, gameObject);
-        return database.getInstanceOrCreate(identifier, objectConstructor, options);
+    getDataBuiltInstance(namespace, gameObject, identifier) {
+        const database = this.get(namespace, gameObject);
+        return database === null || database === void 0 ? void 0 : database.getBuiltInstance(identifier);
+    }
+    /**
+     * @deprecated use {@link createDataInstanceIfAbsent} instead
+     * @param namespace
+     * @param gameObject
+     * @param identifier
+     * @param objectConstructor
+     * @param options
+     */
+    getDatDaInstanceOrCreate(namespace, gameObject, identifier, objectConstructor, options) {
+        return this.createDataInstanceIfAbsent(namespace, gameObject, identifier, objectConstructor, options);
+    }
+    createDataInstanceIfAbsent(namespace, gameObject, identifier, objectConstructor, options) {
+        const database = this.createIfAbsent(namespace, gameObject);
+        return database.createInstanceIfAbsent(identifier, objectConstructor, options);
     }
     remove(namespace, gameObject, clearData = false) {
         const databaseManager = this._getNamespacedManager(namespace);
@@ -257,7 +302,7 @@ export class DatabaseManager {
             }
             else {
                 for (const manager of this._databaseManagerMap.values()) {
-                    this.flushDatabase(manager.getOrCreate(player));
+                    this.flushDatabase(manager.createIfAbsent(player));
                 }
             }
         });

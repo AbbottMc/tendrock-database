@@ -46,14 +46,38 @@ export class NamespacedDatabaseManager {
         }
         this._worldInitialIdList.push([propertyId, dataId]);
     }
+    *_initWorldDataGenerator() {
+        if (this._worldInitialIdList) {
+            this._worldDatabase = WorldDatabase.create(this.namespace, this, world, this._worldInitialIdList);
+            this._worldInitialIdList = undefined;
+            yield;
+        }
+    }
+    *_initBlockDataGenerator() {
+        if (this._blockInitialIdListMap.size <= 0) {
+            const gameObjectToDatabaseMap = this._parentManager._getBlockToDatabaseMap(UniqueIdUtils.RuntimeId);
+            for (const [lid, set] of this._blockInitialIdListMap) {
+                const blockDatabase = BlockDatabase.create(this.namespace, this, lid, set);
+                this._blockDatabaseMap.set(lid, blockDatabase);
+                gameObjectToDatabaseMap.addValue(lid, blockDatabase);
+                yield;
+            }
+            this._blockInitialIdListMap.clear();
+        }
+    }
+    *_initWorldBlockDataGenerator(runtimeId) {
+        Utils.assertInvokedByTendrock(runtimeId);
+        yield* this._initWorldDataGenerator();
+        yield* this._initBlockDataGenerator();
+    }
     _prepare(gameObject) {
         if (typeof gameObject === 'string' || gameObject instanceof Block) {
             const uniqueId = UniqueIdUtils.getBlockUniqueId(gameObject);
             const databaseMap = this._blockDatabaseMap;
             const databaseType = BlockDatabase;
             const gameObjectToDatabaseMap = this._parentManager._getBlockToDatabaseMap(UniqueIdUtils.RuntimeId);
-            const initialIdList = this._blockInitialIdListMap.get(uniqueId);
-            return { uniqueId, databaseMap, databaseType, gameObjectToDatabaseMap, initialIdList };
+            // const initialIdList = this._blockInitialIdListMap.get(uniqueId);
+            return { uniqueId, databaseMap, databaseType, gameObjectToDatabaseMap };
         }
         else if (gameObject instanceof Entity) {
             const uniqueId = UniqueIdUtils.getEntityUniqueId(gameObject);
@@ -71,21 +95,28 @@ export class NamespacedDatabaseManager {
         }
         else if (gameObject instanceof World) {
             const databaseType = WorldDatabase;
-            const initialIdList = this._worldInitialIdList;
-            return { uniqueId: undefined, databaseMap: undefined, databaseType, initialIdList };
+            // const initialIdList = this._worldInitialIdList;
+            return { uniqueId: undefined, databaseMap: undefined, databaseType };
         }
         else {
             throw new Error(`Invalid game object type.`);
         }
     }
+    /**
+     * @deprecated Use {@link createIfAbsent} instead.
+     * @param gameObject
+     */
     getOrCreate(gameObject) {
-        const { uniqueId, databaseMap, databaseType, gameObjectToDatabaseMap, initialIdList } = this._prepare(gameObject);
+        return this.createIfAbsent(gameObject);
+    }
+    createIfAbsent(gameObject) {
+        const { uniqueId, databaseMap, databaseType, gameObjectToDatabaseMap } = this._prepare(gameObject);
         // Is world database
         if (!uniqueId || !databaseMap || !gameObjectToDatabaseMap) {
             if (this._worldDatabase) {
                 return this._worldDatabase;
             }
-            this._worldDatabase = WorldDatabase.create(this.namespace, this, world, initialIdList);
+            this._worldDatabase = WorldDatabase.create(this.namespace, this, world);
             this._worldInitialIdList = undefined;
             return this._worldDatabase;
         }
@@ -93,10 +124,10 @@ export class NamespacedDatabaseManager {
         if (database) {
             return database;
         }
-        database = databaseType.create(this.namespace, this, gameObject, initialIdList);
+        database = databaseType.create(this.namespace, this, gameObject);
         databaseMap.set(uniqueId, database);
         gameObjectToDatabaseMap.addValue(uniqueId, database);
-        this._blockInitialIdListMap.delete(uniqueId);
+        // this._blockInitialIdListMap.delete(uniqueId);
         return database;
     }
     get(gameObject) {

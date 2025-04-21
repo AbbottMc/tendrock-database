@@ -14,7 +14,7 @@ world.afterEvents.playerPlaceBlock.subscribe(({ block }) => {
     // });
     // console.log('data saved');
     testBlock = block;
-    const blockDatabase = databaseManager.getOrCreate('test', testBlock);
+    const blockDatabase = databaseManager.createIfAbsent('test', testBlock);
     if (blockDatabase.size() <= 0) {
         blockDatabase.set('test:test_id', {
             typeId: testBlock.typeId, message: `${testBlock.typeId} is used!`
@@ -48,7 +48,7 @@ world.beforeEvents.playerBreakBlock.subscribe(({ block, player }) => {
 // });
 world.afterEvents.entityHitEntity.subscribe(({ damagingEntity, hitEntity }) => {
     var _a;
-    const entityDatabase = databaseManager.getOrCreate('test', hitEntity);
+    const entityDatabase = databaseManager.createIfAbsent('test', hitEntity);
     if (entityDatabase.size() <= 0) {
         entityDatabase.set('test:test_id', {
             typeId: hitEntity.typeId, message: `${hitEntity.typeId} is hit!`

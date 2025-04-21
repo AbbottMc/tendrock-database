@@ -45,7 +45,6 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     return obj.toJSON !== undefined;
   }
 
-
   protected getInstanceImpl<T>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent: boolean, options?: unknown): T | undefined {
     const retObj = this.get(identifier);
     if (!createIfAbsent && !retObj) return undefined;
@@ -62,15 +61,43 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     return ret;
   }
 
+  /**
+   * @deprecated use {@link createInstanceIfAbsent} instead
+   * @param identifier
+   * @param objectConstructor
+   * @param options
+   */
   public getInstanceOrCreate<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
+    return this.createInstanceIfAbsent(identifier, objectConstructor, options);
+  }
+
+  public createInstanceIfAbsent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
     return this.getInstanceImpl(identifier, objectConstructor, true, options)!;
   }
 
+  /**
+   * @deprecated use {@link buildInstanceIfPresent} instead
+   * @param identifier
+   * @param objectConstructor
+   * @param options
+   */
   public getInstance<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
+    return this.buildInstanceIfPresent(identifier, objectConstructor, options);
+  }
+
+  public buildInstanceIfPresent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
     return this.getInstanceImpl(identifier, objectConstructor, false, options);
   }
 
+  /**
+   * @deprecated use {@link getBuiltInstance} instead
+   * @param identifier
+   */
   public getInstanceIfPresent<T>(identifier: string): T | undefined {
+    return this.getBuiltInstance(identifier);
+  }
+
+  public getBuiltInstance<T>(identifier: string): T | undefined {
     const retObj = this.get(identifier);
     if (!retObj || typeof retObj !== 'object') return undefined;
     if (retObj.constructor.name === 'Object') {
