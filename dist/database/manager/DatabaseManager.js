@@ -153,7 +153,7 @@ export class DatabaseManager {
      * @param objectConstructor
      * @param options
      */
-    getDatDaInstanceOrCreate(namespace, gameObject, identifier, objectConstructor, options) {
+    getDataInstanceOrCreate(namespace, gameObject, identifier, objectConstructor, options) {
         return this.createDataInstanceIfAbsent(namespace, gameObject, identifier, objectConstructor, options);
     }
     createDataInstanceIfAbsent(namespace, gameObject, identifier, objectConstructor, options) {

@@ -65,7 +65,7 @@ export declare class DatabaseManager {
      * @param objectConstructor
      * @param options
      */
-    getDatDaInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
+    getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
     createDataInstanceIfAbsent<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
     remove(namespace: string, gameObject: GameObjectType, clearData?: boolean): void;
     private _prepare;
