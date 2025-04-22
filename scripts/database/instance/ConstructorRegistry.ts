@@ -13,7 +13,7 @@ export class ConstructorRegistryImpl {
     if (objectConstructor.prototype.toJSON === undefined) {
       throw new Error("Register constructor failed! The constructor must have 'toJSON' method.");
     }
-    this._constructorMap.set(objectConstructor.constructor.name, objectConstructor);
+    this._constructorMap.set(objectConstructor.prototype.constructor.name, objectConstructor);
   }
 
   public get<T>(constructorName: string): Constructor<T> | undefined {

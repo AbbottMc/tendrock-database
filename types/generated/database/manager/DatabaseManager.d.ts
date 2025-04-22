@@ -35,43 +35,12 @@ export declare class DatabaseManager {
     private _doReady;
     whenReady(callback: () => void): (() => void) | undefined;
     isReady(): boolean;
-    /**
-     * @deprecated use {@link createIfAbsent} instead}
-     * @param namespace
-     * @param gameObject
-     */
-    getOrCreate<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T>;
     createIfAbsent<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T>;
     get<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T> | undefined;
     setData(namespace: string, gameObject: GameObjectType, identifier: string, value: TendrockDynamicPropertyValue): void;
     getData<T extends TendrockDynamicPropertyValue>(namespace: string, gameObject: GameObjectType, identifier: string): T;
-    /**
-     * @deprecated use {@link buildDataInstanceIfPresent} instead
-     * @param namespace
-     * @param gameObject
-     * @param identifier
-     * @param objectConstructor
-     * @param options
-     */
-    getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined;
     buildDataInstanceIfPresent<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined;
-    /**
-     * @deprecated use {@link getDataBuiltInstance} instead
-     * @param namespace
-     * @param gameObject
-     * @param identifier
-     */
-    getDataInstanceIfPresent<T>(namespace: string, gameObject: GameObjectType, identifier: string): T | undefined;
     getDataBuiltInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string): T | undefined;
-    /**
-     * @deprecated use {@link createDataInstanceIfAbsent} instead
-     * @param namespace
-     * @param gameObject
-     * @param identifier
-     * @param objectConstructor
-     * @param options
-     */
-    getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
     createDataInstanceIfAbsent<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
     remove(namespace: string, gameObject: GameObjectType, clearData?: boolean): void;
     private _prepare;

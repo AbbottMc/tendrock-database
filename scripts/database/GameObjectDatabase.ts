@@ -61,40 +61,12 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     return ret as T;
   }
 
-  /**
-   * @deprecated use {@link createInstanceIfAbsent} instead
-   * @param identifier
-   * @param objectConstructor
-   * @param options
-   */
-  public getInstanceOrCreate<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
-    return this.createInstanceIfAbsent(identifier, objectConstructor, options);
-  }
-
   public createInstanceIfAbsent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
     return this.getInstanceImpl(identifier, objectConstructor, true, options)!;
   }
 
-  /**
-   * @deprecated use {@link buildInstanceIfPresent} instead
-   * @param identifier
-   * @param objectConstructor
-   * @param options
-   */
-  public getInstance<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
-    return this.buildInstanceIfPresent(identifier, objectConstructor, options);
-  }
-
   public buildInstanceIfPresent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
     return this.getInstanceImpl(identifier, objectConstructor, false, options);
-  }
-
-  /**
-   * @deprecated use {@link getBuiltInstance} instead
-   * @param identifier
-   */
-  public getInstanceIfPresent<T>(identifier: string): T | undefined {
-    return this.getBuiltInstance(identifier);
   }
 
   public getBuiltInstance<T>(identifier: string): T | undefined {

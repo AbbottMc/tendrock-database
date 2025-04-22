@@ -8,12 +8,16 @@ export interface InstanceDataOptions {
   uniqueId: string;
 }
 
-export class InstanceData<GOT extends Exclude<GameObjectType, string>> {
+export interface InstanceDataJson {
+  constructorName: string;
+}
+
+export abstract class InstanceData<GOT extends Exclude<GameObjectType, string>> {
   public readonly database: DatabaseTypeBy<GOT>;
   public readonly identifier: string;
   public readonly uniqueId: string;
 
-  constructor(dataJson: any | undefined, instanceDataOptions: InstanceDataOptions, options: any | undefined) {
+  constructor(dataJson: InstanceDataJson | undefined, instanceDataOptions: InstanceDataOptions, options: any | undefined) {
     this.database = instanceDataOptions.database as DatabaseTypeBy<GOT>;
     this.identifier = instanceDataOptions.identifier;
     this.uniqueId = instanceDataOptions.uniqueId;

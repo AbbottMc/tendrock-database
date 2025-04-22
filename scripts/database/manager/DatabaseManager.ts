@@ -129,15 +129,6 @@ export class DatabaseManager {
     return this._isInitialized;
   }
 
-  /**
-   * @deprecated use {@link createIfAbsent} instead}
-   * @param namespace
-   * @param gameObject
-   */
-  public getOrCreate<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T> {
-    return this.createIfAbsent(namespace, gameObject);
-  }
-
   public createIfAbsent<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T> {
     const databaseManager = this._createNamespacedManagerIfAbsent(namespace);
     return databaseManager.createIfAbsent(gameObject);
@@ -161,48 +152,14 @@ export class DatabaseManager {
     return database?.get(identifier) as T;
   }
 
-  /**
-   * @deprecated use {@link buildDataInstanceIfPresent} instead
-   * @param namespace
-   * @param gameObject
-   * @param identifier
-   * @param objectConstructor
-   * @param options
-   */
-  public getDataInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
-    return this.buildDataInstanceIfPresent(namespace, gameObject, identifier, objectConstructor, options);
-  }
-
   public buildDataInstanceIfPresent<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
     const database = this.get(namespace, gameObject);
     return database?.buildInstanceIfPresent(identifier, objectConstructor, options);
   }
 
-  /**
-   * @deprecated use {@link getDataBuiltInstance} instead
-   * @param namespace
-   * @param gameObject
-   * @param identifier
-   */
-  public getDataInstanceIfPresent<T>(namespace: string, gameObject: GameObjectType, identifier: string): T | undefined {
-    return this.getDataBuiltInstance(namespace, gameObject, identifier);
-  }
-
   public getDataBuiltInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string): T | undefined {
     const database = this.get(namespace, gameObject);
     return database?.getBuiltInstance(identifier);
-  }
-
-  /**
-   * @deprecated use {@link createDataInstanceIfAbsent} instead
-   * @param namespace
-   * @param gameObject
-   * @param identifier
-   * @param objectConstructor
-   * @param options
-   */
-  public getDataInstanceOrCreate<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
-    return this.createDataInstanceIfAbsent(namespace, gameObject, identifier, objectConstructor, options);
   }
 
   public createDataInstanceIfAbsent<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {

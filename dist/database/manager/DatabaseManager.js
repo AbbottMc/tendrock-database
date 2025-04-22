@@ -117,14 +117,6 @@ export class DatabaseManager {
     isReady() {
         return this._isInitialized;
     }
-    /**
-     * @deprecated use {@link createIfAbsent} instead}
-     * @param namespace
-     * @param gameObject
-     */
-    getOrCreate(namespace, gameObject) {
-        return this.createIfAbsent(namespace, gameObject);
-    }
     createIfAbsent(namespace, gameObject) {
         const databaseManager = this._createNamespacedManagerIfAbsent(namespace);
         return databaseManager.createIfAbsent(gameObject);
@@ -144,44 +136,13 @@ export class DatabaseManager {
         const database = this.get(namespace, gameObject);
         return database === null || database === void 0 ? void 0 : database.get(identifier);
     }
-    /**
-     * @deprecated use {@link buildDataInstanceIfPresent} instead
-     * @param namespace
-     * @param gameObject
-     * @param identifier
-     * @param objectConstructor
-     * @param options
-     */
-    getDataInstance(namespace, gameObject, identifier, objectConstructor, options) {
-        return this.buildDataInstanceIfPresent(namespace, gameObject, identifier, objectConstructor, options);
-    }
     buildDataInstanceIfPresent(namespace, gameObject, identifier, objectConstructor, options) {
         const database = this.get(namespace, gameObject);
         return database === null || database === void 0 ? void 0 : database.buildInstanceIfPresent(identifier, objectConstructor, options);
     }
-    /**
-     * @deprecated use {@link getDataBuiltInstance} instead
-     * @param namespace
-     * @param gameObject
-     * @param identifier
-     */
-    getDataInstanceIfPresent(namespace, gameObject, identifier) {
-        return this.getDataBuiltInstance(namespace, gameObject, identifier);
-    }
     getDataBuiltInstance(namespace, gameObject, identifier) {
         const database = this.get(namespace, gameObject);
         return database === null || database === void 0 ? void 0 : database.getBuiltInstance(identifier);
-    }
-    /**
-     * @deprecated use {@link createDataInstanceIfAbsent} instead
-     * @param namespace
-     * @param gameObject
-     * @param identifier
-     * @param objectConstructor
-     * @param options
-     */
-    getDataInstanceOrCreate(namespace, gameObject, identifier, objectConstructor, options) {
-        return this.createDataInstanceIfAbsent(namespace, gameObject, identifier, objectConstructor, options);
     }
     createDataInstanceIfAbsent(namespace, gameObject, identifier, objectConstructor, options) {
         const database = this.createIfAbsent(namespace, gameObject);

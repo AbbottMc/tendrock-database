@@ -48,36 +48,11 @@ export class GameObjectDatabase {
         this.set(identifier, ret);
         return ret;
     }
-    /**
-     * @deprecated use {@link createInstanceIfAbsent} instead
-     * @param identifier
-     * @param objectConstructor
-     * @param options
-     */
-    getInstanceOrCreate(identifier, objectConstructor, options) {
-        return this.createInstanceIfAbsent(identifier, objectConstructor, options);
-    }
     createInstanceIfAbsent(identifier, objectConstructor, options) {
         return this.getInstanceImpl(identifier, objectConstructor, true, options);
     }
-    /**
-     * @deprecated use {@link buildInstanceIfPresent} instead
-     * @param identifier
-     * @param objectConstructor
-     * @param options
-     */
-    getInstance(identifier, objectConstructor, options) {
-        return this.buildInstanceIfPresent(identifier, objectConstructor, options);
-    }
     buildInstanceIfPresent(identifier, objectConstructor, options) {
         return this.getInstanceImpl(identifier, objectConstructor, false, options);
-    }
-    /**
-     * @deprecated use {@link getBuiltInstance} instead
-     * @param identifier
-     */
-    getInstanceIfPresent(identifier) {
-        return this.getBuiltInstance(identifier);
     }
     getBuiltInstance(identifier) {
         const retObj = this.get(identifier);

@@ -18,7 +18,7 @@ export class BlockDatabase extends GameObjectDatabase<Block> {
     if (initialIdList) {
       initialIdList.forEach(([propertyId, dataId]) => {
         const value = Utils.deserializeData(world.getDynamicProperty(propertyId));
-        this._dataMap.set(dataId, Utils.deserializeInstance(value, dataId, this) as any);
+        this._dataMap.set(dataId, Utils.deserializeInstance(this._uid, value, dataId, this) as any);
       });
     }
   }
