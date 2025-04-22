@@ -3,6 +3,7 @@ import {Block, Entity, ItemStack, World} from "@minecraft/server";
 import {UniqueIdUtils} from "./helper/UniqueIdUtils";
 import {Constructor, NamespacedDatabaseManager} from "./manager";
 import {Utils} from "./helper/Utils";
+import {InstanceData} from "./instance/InstanceData";
 
 export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
   protected _dynamicProperty: NamespacedDynamicProperty;
@@ -51,14 +52,15 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     if (retObj instanceof objectConstructor) {
       return retObj;
     }
-    const ret = new objectConstructor(retObj, options);
+    const ret = new objectConstructor(retObj, options, {database: this, identifier}) as InstanceData;
+    ret._initInstanceOptions?.(UniqueIdUtils.RuntimeId, {database: this, identifier});
     // console.log(JSON.stringify(retObj));
     // console.log(JSON.stringify(ret));
     if (!this._canSetAsInstance(ret)) {
       throw new Error(`Cannot set instance of ${objectConstructor.name} into ${this.constructor.name} because it doesnt have "toJSON" method.`);
     }
     this.set(identifier, ret);
-    return ret;
+    return ret as T;
   }
 
   /**

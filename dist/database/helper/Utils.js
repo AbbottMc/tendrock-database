@@ -21,6 +21,7 @@ var __rest = (this && this.__rest) || function (s, e) {
 import { system, world } from "@minecraft/server";
 import { NamespacedDynamicProperty } from "../NamespacedDynamicProperty";
 import { UniqueIdUtils } from "./UniqueIdUtils";
+import { ConstructorRegistryImpl } from "../instance/ConstructorRegistry";
 export class Utils {
     static assertInvokedByTendrock(runtimeId) {
         if (runtimeId !== UniqueIdUtils.RuntimeId) {
@@ -115,6 +116,21 @@ export class Utils {
         else {
             return value;
         }
+    }
+    static deserializeInstance(value, identifier, database) {
+        var _a;
+        if (typeof value !== 'object' || Utils.isVector3(value)) {
+            return value;
+        }
+        const { constructorName } = value;
+        if (typeof constructorName !== 'string')
+            return value;
+        const constructor = ConstructorRegistryImpl.Instance.get(constructorName);
+        if (!constructor)
+            return value;
+        const result = new constructor(value, undefined);
+        (_a = result._initInstanceOptions) === null || _a === void 0 ? void 0 : _a.call(result, UniqueIdUtils.RuntimeId, { database, identifier });
+        return result;
     }
     static _getTendrockPropertyId(identifier) {
         if (!identifier.startsWith(NamespacedDynamicProperty.TendrockPropertyIdPrefix)) {

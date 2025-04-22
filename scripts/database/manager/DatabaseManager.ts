@@ -7,29 +7,39 @@ import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
 import {SetMap} from "@tenolib/map";
 import {BlockDatabase, EntityDatabase, ItemStackDatabase} from "../impl";
 import {DatabaseTypes} from "../DatabaseTypes";
+import {ConstructorRegistry} from "../instance";
+import {ConstructorRegistryImpl} from "../instance/ConstructorRegistry";
 
 export type Constructor<T> = new (...args: any[]) => T;
 export type GameObjectType = Block | Entity | ItemStack | World | string;
 
 export class DatabaseManager {
-  private _databaseManagerMap = new Map<string, NamespacedDatabaseManager>();
+  private readonly _databaseManagerMap = new Map<string, NamespacedDatabaseManager>();
+  private readonly _eventCallbackMap = new SetMap<string, (...args: any[]) => void>();
+
+  private readonly _blockToDatabaseMap = new SetMap<string, BlockDatabase>();
+  private readonly _itemToDatabaseMap = new SetMap<string, ItemStackDatabase>();
+  private readonly _entityToDatabaseMap = new SetMap<string, EntityDatabase>();
+
+  private readonly _changingEntityDatabaseBuffer = new Map<string, EntityDatabase>();
+
   private _isInitialized = false;
-  private _whenReadyCallbackList = new Array<() => void>();
   private _autoFlushTaskId: number | undefined;
-
-  private _blockToDatabaseMap = new SetMap<string, BlockDatabase>();
-  private _itemToDatabaseMap = new SetMap<string, ItemStackDatabase>();
-  private _entityToDatabaseMap = new SetMap<string, EntityDatabase>();
-
-  private _changingEntityDatabaseBuffer = new Map<string, EntityDatabase>();
-
   private _flushInterval = 3 * 6 * 20;
   private _autoUpdateSourceEntity = false;
   private _autoFlush = true;
 
   constructor() {
-    this._startFlushWhenPlayerLeaveTask();
-    this._loadWorldDynamicPropertiesWhenWorldLoaded();
+    this._triggerStartupEventWhenSystemStartup();
+    this._loadWorldDynamicPropertiesWhenWorldLoad();
+    this._flushDataWhenPlayerLeave();
+  }
+
+  private _triggerStartupEventWhenSystemStartup() {
+    const callback = system.beforeEvents.startup.subscribe(() => {
+      this._doStartup();
+      system.beforeEvents.startup.unsubscribe(callback);
+    });
   }
 
   private* _loadAndParseWorldDynamicPropertiesGenerator(): Generator<void, void, void> {
@@ -60,9 +70,9 @@ export class DatabaseManager {
     this._doReady();
   }
 
-  private _loadWorldDynamicPropertiesWhenWorldLoaded() {
-    world.afterEvents.worldLoad.subscribe(() => {
-      this._loadWorldDynamicProperties();
+  private _loadWorldDynamicPropertiesWhenWorldLoad() {
+    const callback = world.afterEvents.worldLoad.subscribe(() => {
+      this._loadWorldDynamicProperties().then(() => world.afterEvents.worldLoad.unsubscribe(callback));
     });
   }
 
@@ -80,9 +90,28 @@ export class DatabaseManager {
     return this._databaseManagerMap.get(namespace);
   }
 
+  private _doStartup() {
+    if (this._isInitialized) {
+      throw new Error('DatabaseManager is already startup');
+    }
+    const event = {constructorRegistry: ConstructorRegistryImpl.Instance.getRegistry()};
+    this._eventCallbackMap.get('whenStartup')?.forEach(callback => callback(event));
+    this._eventCallbackMap.delete('whenStartup');
+  }
+
+  public whenStartup(callback: (event: { constructorRegistry: ConstructorRegistry }) => void) {
+    if (this._isInitialized) {
+      throw new Error('DatabaseManager is already startup');
+    }
+    this._eventCallbackMap.addValue('whenStartup', callback);
+    return () => {
+      this._eventCallbackMap.deleteValue('whenStartup', callback);
+    };
+  }
+
   private _doReady() {
-    this._whenReadyCallbackList.forEach(callback => callback());
-    this._whenReadyCallbackList = [];
+    this._eventCallbackMap.get('whenReady')?.forEach(callback => callback());
+    this._eventCallbackMap.delete('whenReady');
   }
 
   public whenReady(callback: () => void): (() => void) | undefined {
@@ -90,9 +119,9 @@ export class DatabaseManager {
       callback();
       return undefined;
     }
-    this._whenReadyCallbackList.push(callback);
+    this._eventCallbackMap.addValue('whenReady', callback);
     return () => {
-      this._whenReadyCallbackList.splice(this._whenReadyCallbackList.indexOf(callback), 1);
+      this._eventCallbackMap.deleteValue('whenReady', callback);
     };
   }
 
@@ -327,7 +356,7 @@ export class DatabaseManager {
     system.runJob(this.flushAllDataGenerator());
   }
 
-  protected _startFlushWhenPlayerLeaveTask() {
+  protected _flushDataWhenPlayerLeave() {
     world.beforeEvents.playerLeave.subscribe(({player}) => {
       if (world.getAllPlayers().length === 1) {
         this.flushSync();

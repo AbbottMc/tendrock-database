@@ -12,20 +12,28 @@ import { NamespacedDatabaseManager } from "./NamespacedDatabaseManager";
 import { UniqueIdUtils } from "../helper/UniqueIdUtils";
 import { Utils } from "../helper/Utils";
 import { SetMap } from "@tenolib/map";
+import { ConstructorRegistryImpl } from "../instance/ConstructorRegistry";
 export class DatabaseManager {
     constructor() {
         this._databaseManagerMap = new Map();
-        this._isInitialized = false;
-        this._whenReadyCallbackList = new Array();
+        this._eventCallbackMap = new SetMap();
         this._blockToDatabaseMap = new SetMap();
         this._itemToDatabaseMap = new SetMap();
         this._entityToDatabaseMap = new SetMap();
         this._changingEntityDatabaseBuffer = new Map();
+        this._isInitialized = false;
         this._flushInterval = 3 * 6 * 20;
         this._autoUpdateSourceEntity = false;
         this._autoFlush = true;
-        this._startFlushWhenPlayerLeaveTask();
-        this._loadWorldDynamicPropertiesWhenWorldLoaded();
+        this._triggerStartupEventWhenSystemStartup();
+        this._loadWorldDynamicPropertiesWhenWorldLoad();
+        this._flushDataWhenPlayerLeave();
+    }
+    _triggerStartupEventWhenSystemStartup() {
+        const callback = system.beforeEvents.startup.subscribe(() => {
+            this._doStartup();
+            system.beforeEvents.startup.unsubscribe(callback);
+        });
     }
     *_loadAndParseWorldDynamicPropertiesGenerator() {
         for (const id of world.getDynamicPropertyIds()) {
@@ -56,9 +64,9 @@ export class DatabaseManager {
             this._doReady();
         });
     }
-    _loadWorldDynamicPropertiesWhenWorldLoaded() {
-        world.afterEvents.worldLoad.subscribe(() => {
-            this._loadWorldDynamicProperties();
+    _loadWorldDynamicPropertiesWhenWorldLoad() {
+        const callback = world.afterEvents.worldLoad.subscribe(() => {
+            this._loadWorldDynamicProperties().then(() => world.afterEvents.worldLoad.unsubscribe(callback));
         });
     }
     _createNamespacedManagerIfAbsent(namespace) {
@@ -73,18 +81,37 @@ export class DatabaseManager {
     _getNamespacedManager(namespace) {
         return this._databaseManagerMap.get(namespace);
     }
+    _doStartup() {
+        var _a;
+        if (this._isInitialized) {
+            throw new Error('DatabaseManager is already startup');
+        }
+        const event = { constructorRegistry: ConstructorRegistryImpl.Instance.getRegistry() };
+        (_a = this._eventCallbackMap.get('whenStartup')) === null || _a === void 0 ? void 0 : _a.forEach(callback => callback(event));
+        this._eventCallbackMap.delete('whenStartup');
+    }
+    whenStartup(callback) {
+        if (this._isInitialized) {
+            throw new Error('DatabaseManager is already startup');
+        }
+        this._eventCallbackMap.addValue('whenStartup', callback);
+        return () => {
+            this._eventCallbackMap.deleteValue('whenStartup', callback);
+        };
+    }
     _doReady() {
-        this._whenReadyCallbackList.forEach(callback => callback());
-        this._whenReadyCallbackList = [];
+        var _a;
+        (_a = this._eventCallbackMap.get('whenReady')) === null || _a === void 0 ? void 0 : _a.forEach(callback => callback());
+        this._eventCallbackMap.delete('whenReady');
     }
     whenReady(callback) {
         if (this._isInitialized) {
             callback();
             return undefined;
         }
-        this._whenReadyCallbackList.push(callback);
+        this._eventCallbackMap.addValue('whenReady', callback);
         return () => {
-            this._whenReadyCallbackList.splice(this._whenReadyCallbackList.indexOf(callback), 1);
+            this._eventCallbackMap.deleteValue('whenReady', callback);
         };
     }
     isReady() {
@@ -295,7 +322,7 @@ export class DatabaseManager {
             return;
         system.runJob(this.flushAllDataGenerator());
     }
-    _startFlushWhenPlayerLeaveTask() {
+    _flushDataWhenPlayerLeave() {
         world.beforeEvents.playerLeave.subscribe(({ player }) => {
             if (world.getAllPlayers().length === 1) {
                 this.flushSync();

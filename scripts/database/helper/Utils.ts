@@ -3,6 +3,9 @@ import {
   DynamicPropertyValue, NamespacedDynamicProperty, TendrockDynamicPropertyValue
 } from "../NamespacedDynamicProperty";
 import {UniqueIdUtils} from "./UniqueIdUtils";
+import {ConstructorRegistryImpl} from "../instance/ConstructorRegistry";
+import {GameObjectDatabase} from "../GameObjectDatabase";
+import {InstanceData} from "../instance/InstanceData";
 
 export interface IdentifierParseResult {
   namespace: string;
@@ -111,6 +114,19 @@ export class Utils {
     } else {
       return value as TendrockDynamicPropertyValue;
     }
+  }
+
+  public static deserializeInstance(value: TendrockDynamicPropertyValue, identifier: string, database: GameObjectDatabase<any>) {
+    if (typeof value !== 'object' || Utils.isVector3(value)) {
+      return value;
+    }
+    const {constructorName} = value;
+    if (typeof constructorName !== 'string') return value;
+    const constructor = ConstructorRegistryImpl.Instance.get(constructorName);
+    if (!constructor) return value;
+    const result = new constructor(value, undefined) as InstanceData;
+    result._initInstanceOptions?.(UniqueIdUtils.RuntimeId, {database, identifier});
+    return result;
   }
 
   private static _getTendrockPropertyId(identifier: string) {
