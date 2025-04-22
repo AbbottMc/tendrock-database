@@ -117,8 +117,7 @@ export class Utils {
             return value;
         }
     }
-    static deserializeInstance(value, identifier, database) {
-        var _a;
+    static deserializeInstance(uniqueId, value, identifier, database) {
         if (typeof value !== 'object' || Utils.isVector3(value)) {
             return value;
         }
@@ -128,9 +127,7 @@ export class Utils {
         const constructor = ConstructorRegistryImpl.Instance.get(constructorName);
         if (!constructor)
             return value;
-        const result = new constructor(value, undefined);
-        (_a = result._initInstanceOptions) === null || _a === void 0 ? void 0 : _a.call(result, UniqueIdUtils.RuntimeId, { database, identifier });
-        return result;
+        return new constructor(value, { uniqueId, identifier, database }, undefined);
     }
     static _getTendrockPropertyId(identifier) {
         if (!identifier.startsWith(NamespacedDynamicProperty.TendrockPropertyIdPrefix)) {

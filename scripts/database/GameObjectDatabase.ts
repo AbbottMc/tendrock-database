@@ -3,7 +3,6 @@ import {Block, Entity, ItemStack, World} from "@minecraft/server";
 import {UniqueIdUtils} from "./helper/UniqueIdUtils";
 import {Constructor, NamespacedDatabaseManager} from "./manager";
 import {Utils} from "./helper/Utils";
-import {InstanceData} from "./instance/InstanceData";
 
 export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
   protected _dynamicProperty: NamespacedDynamicProperty;
@@ -52,8 +51,7 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     if (retObj instanceof objectConstructor) {
       return retObj;
     }
-    const ret = new objectConstructor(retObj, options, {database: this, identifier}) as InstanceData;
-    ret._initInstanceOptions?.(UniqueIdUtils.RuntimeId, {database: this, identifier});
+    const ret = new objectConstructor(retObj, {database: this, identifier, uniqueId: this.getUid()}, options);
     // console.log(JSON.stringify(retObj));
     // console.log(JSON.stringify(ret));
     if (!this._canSetAsInstance(ret)) {

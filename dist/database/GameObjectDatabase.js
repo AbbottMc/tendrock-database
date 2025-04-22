@@ -33,15 +33,13 @@ export class GameObjectDatabase {
         return obj.toJSON !== undefined;
     }
     getInstanceImpl(identifier, objectConstructor, createIfAbsent, options) {
-        var _a;
         const retObj = this.get(identifier);
         if (!createIfAbsent && !retObj)
             return undefined;
         if (retObj instanceof objectConstructor) {
             return retObj;
         }
-        const ret = new objectConstructor(retObj, options, { database: this, identifier });
-        (_a = ret._initInstanceOptions) === null || _a === void 0 ? void 0 : _a.call(ret, UniqueIdUtils.RuntimeId, { database: this, identifier });
+        const ret = new objectConstructor(retObj, { database: this, identifier, uniqueId: this.getUid() }, options);
         // console.log(JSON.stringify(retObj));
         // console.log(JSON.stringify(ret));
         if (!this._canSetAsInstance(ret)) {

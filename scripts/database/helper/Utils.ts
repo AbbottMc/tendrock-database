@@ -116,7 +116,7 @@ export class Utils {
     }
   }
 
-  public static deserializeInstance(value: TendrockDynamicPropertyValue, identifier: string, database: GameObjectDatabase<any>) {
+  public static deserializeInstance(uniqueId: string, value: TendrockDynamicPropertyValue, identifier: string, database: GameObjectDatabase<any>) {
     if (typeof value !== 'object' || Utils.isVector3(value)) {
       return value;
     }
@@ -124,9 +124,7 @@ export class Utils {
     if (typeof constructorName !== 'string') return value;
     const constructor = ConstructorRegistryImpl.Instance.get(constructorName);
     if (!constructor) return value;
-    const result = new constructor(value, undefined) as InstanceData;
-    result._initInstanceOptions?.(UniqueIdUtils.RuntimeId, {database, identifier});
-    return result;
+    return new constructor(value, {uniqueId, identifier, database}, undefined);
   }
 
   private static _getTendrockPropertyId(identifier: string) {
