@@ -1,5 +1,14 @@
 import {Constructor} from "../manager";
 
+export class ConstructorRegistry {
+  constructor(protected _registryImpl: ConstructorRegistryImpl) {
+  }
+
+  public register<T>(objectConstructor: Constructor<T>) {
+    this._registryImpl.register(objectConstructor);
+  }
+}
+
 export class ConstructorRegistryImpl {
   public static Instance = new ConstructorRegistryImpl();
   protected _registry: ConstructorRegistry;
@@ -25,11 +34,3 @@ export class ConstructorRegistryImpl {
   }
 }
 
-export class ConstructorRegistry {
-  constructor(protected _registryImpl: ConstructorRegistryImpl) {
-  }
-
-  public register<T>(objectConstructor: Constructor<T>) {
-    this._registryImpl.register(objectConstructor);
-  }
-}

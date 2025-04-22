@@ -5,7 +5,6 @@ import {
 import {UniqueIdUtils} from "./UniqueIdUtils";
 import {ConstructorRegistryImpl} from "../instance/ConstructorRegistry";
 import {GameObjectDatabase} from "../GameObjectDatabase";
-import {InstanceData} from "../instance/InstanceData";
 
 export interface IdentifierParseResult {
   namespace: string;

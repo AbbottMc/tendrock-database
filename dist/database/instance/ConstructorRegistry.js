@@ -1,3 +1,11 @@
+export class ConstructorRegistry {
+    constructor(_registryImpl) {
+        this._registryImpl = _registryImpl;
+    }
+    register(objectConstructor) {
+        this._registryImpl.register(objectConstructor);
+    }
+}
 export class ConstructorRegistryImpl {
     constructor() {
         this._constructorMap = new Map();
@@ -17,11 +25,3 @@ export class ConstructorRegistryImpl {
     }
 }
 ConstructorRegistryImpl.Instance = new ConstructorRegistryImpl();
-export class ConstructorRegistry {
-    constructor(_registryImpl) {
-        this._registryImpl = _registryImpl;
-    }
-    register(objectConstructor) {
-        this._registryImpl.register(objectConstructor);
-    }
-}
