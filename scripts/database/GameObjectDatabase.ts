@@ -3,6 +3,7 @@ import {Block, Entity, ItemStack, World} from "@minecraft/server";
 import {UniqueIdUtils} from "./helper/UniqueIdUtils";
 import {Constructor, DatabaseManager} from "./manager";
 import {Utils} from "./helper/Utils";
+import {InstanceData} from "./instance";
 
 export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
   protected _dynamicProperty: DynamicPropertySerializer;
@@ -45,7 +46,7 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
     return obj.toJSON !== undefined;
   }
 
-  protected getInstanceImpl<T>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent: boolean, options?: unknown): T | undefined {
+  protected getInstanceImpl<T extends InstanceData<any>>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent: boolean, options?: (Parameters<T['onConstruct']>[0])): T | undefined {
     const retObj = this.get(identifier);
     if (!createIfAbsent && !retObj) return undefined;
     if (retObj instanceof objectConstructor) {
@@ -58,14 +59,14 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
       throw new Error(`Cannot set instance of ${objectConstructor.name} into ${this.constructor.name} because it doesnt have "toJSON" method.`);
     }
     this.set(identifier, ret);
-    return ret as T;
+    return ret;
   }
 
-  public createInstanceIfAbsent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
+  public createInstanceIfAbsent<T extends InstanceData<any>>(identifier: string, objectConstructor: Constructor<T>, options?: (Parameters<T['onConstruct']>[0])): T {
     return this.getInstanceImpl(identifier, objectConstructor, true, options)!;
   }
 
-  public buildInstanceIfPresent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
+  public buildInstanceIfPresent<T extends InstanceData<any>>(identifier: string, objectConstructor: Constructor<T>, options?: (Parameters<T['onConstruct']>[0])): T | undefined {
     return this.getInstanceImpl(identifier, objectConstructor, false, options);
   }
 

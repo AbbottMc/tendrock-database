@@ -4,6 +4,15 @@ export class InstanceData {
         this.database = instanceDataOptions.database;
         this.identifier = instanceDataOptions.identifier;
         this.uniqueId = instanceDataOptions.uniqueId;
+        if (dataJson) {
+            this.onDeserialize(dataJson, instanceDataOptions, options);
+        }
+        else if (options) {
+            this.onConstruct(options, instanceDataOptions);
+        }
+        else {
+            this.onInitWithNoData(instanceDataOptions);
+        }
     }
     toJSON() {
         const serializer = new InstanceSerializer();

@@ -1,6 +1,7 @@
 import { DynamicPropertySerializer, TendrockDynamicPropertyValue } from "./DynamicPropertySerializer";
 import { Block, Entity, ItemStack, World } from "@minecraft/server";
 import { Constructor, DatabaseManager } from "./manager";
+import { InstanceData } from "./instance";
 export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
     readonly parentManager: DatabaseManager;
     protected _dynamicProperty: DynamicPropertySerializer;
@@ -17,9 +18,9 @@ export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack |
     set(identifier: string, value: TendrockDynamicPropertyValue): void;
     get(identifier: string): TendrockDynamicPropertyValue;
     protected _canSetAsInstance(obj: any): obj is TendrockDynamicPropertyValue;
-    protected getInstanceImpl<T>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent: boolean, options?: unknown): T | undefined;
-    createInstanceIfAbsent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
-    buildInstanceIfPresent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined;
+    protected getInstanceImpl<T extends InstanceData<any>>(identifier: string, objectConstructor: Constructor<T>, createIfAbsent: boolean, options?: (Parameters<T['onConstruct']>[0])): T | undefined;
+    createInstanceIfAbsent<T extends InstanceData<any>>(identifier: string, objectConstructor: Constructor<T>, options?: (Parameters<T['onConstruct']>[0])): T;
+    buildInstanceIfPresent<T extends InstanceData<any>>(identifier: string, objectConstructor: Constructor<T>, options?: (Parameters<T['onConstruct']>[0])): T | undefined;
     getBuiltInstance<T>(identifier: string): T | undefined;
     delete(identifier: string): boolean;
     forEach(callback: (identifier: string, value: TendrockDynamicPropertyValue) => void): void;

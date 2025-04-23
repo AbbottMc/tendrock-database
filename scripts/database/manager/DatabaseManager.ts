@@ -8,6 +8,7 @@ import {DatabaseTypes} from "../DatabaseTypes";
 import {ConstructorRegistry, ConstructorRegistryImpl} from "../instance/ConstructorRegistry";
 import {LocationUtils} from "@tendrock/location-id";
 import {DynamicPropertySerializer, TendrockDynamicPropertyValue} from "../DynamicPropertySerializer";
+import {InstanceData} from "../instance";
 
 export type Constructor<T> = new (...args: any[]) => T;
 export type GameObjectType = Block | Entity | ItemStack | World | string;
@@ -452,17 +453,17 @@ export class DatabaseManager {
     return database.delete(identifier);
   }
 
-  public buildDataInstanceIfPresent<T>(gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
+  public buildDataInstanceIfPresent<T extends InstanceData<any>>(gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: (Parameters<T['onConstruct']>[0])): T | undefined {
     const database = this.get(gameObject);
     return database?.buildInstanceIfPresent(identifier, objectConstructor, options);
   }
 
-  public getDataBuiltInstance<T>(gameObject: GameObjectType, identifier: string): T | undefined {
+  public getBuiltDataInstance<T extends InstanceData<any>>(gameObject: GameObjectType, identifier: string): T | undefined {
     const database = this.get(gameObject);
     return database?.getBuiltInstance(identifier);
   }
 
-  public createDataInstanceIfAbsent<T>(gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
+  public createDataInstanceIfAbsent<T extends InstanceData<any>>(gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: (Parameters<T['onConstruct']>[0])): T {
     const database = this.createIfAbsent(gameObject);
     return database.createInstanceIfAbsent(identifier, objectConstructor, options);
   }

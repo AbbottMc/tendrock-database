@@ -21,7 +21,20 @@ export abstract class InstanceData<GOT extends Exclude<GameObjectType, string>> 
     this.database = instanceDataOptions.database as DatabaseTypeBy<GOT>;
     this.identifier = instanceDataOptions.identifier;
     this.uniqueId = instanceDataOptions.uniqueId;
+    if (dataJson) {
+      this.onDeserialize(dataJson, instanceDataOptions, options);
+    } else if (options) {
+      this.onConstruct(options, instanceDataOptions);
+    } else {
+      this.onInitWithNoData(instanceDataOptions);
+    }
   }
+
+  public abstract onDeserialize(dataJson: InstanceDataJson, instanceDataOptions: InstanceDataOptions, options: any | undefined): void;
+
+  public abstract onConstruct(options: unknown, instanceDataOptions: InstanceDataOptions): void;
+
+  public abstract onInitWithNoData(instanceDataOptions: InstanceDataOptions): void;
 
   public toJSON() {
     const serializer = new InstanceSerializer();

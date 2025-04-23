@@ -407,7 +407,7 @@ export class DatabaseManager {
         const database = this.get(gameObject);
         return database === null || database === void 0 ? void 0 : database.buildInstanceIfPresent(identifier, objectConstructor, options);
     }
-    getDataBuiltInstance(gameObject, identifier) {
+    getBuiltDataInstance(gameObject, identifier) {
         const database = this.get(gameObject);
         return database === null || database === void 0 ? void 0 : database.getBuiltInstance(identifier);
     }
