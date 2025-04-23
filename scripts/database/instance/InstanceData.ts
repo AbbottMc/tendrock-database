@@ -16,6 +16,7 @@ export abstract class InstanceData<GOT extends Exclude<GameObjectType, string>> 
   public readonly database: DatabaseTypeBy<GOT>;
   public readonly identifier: string;
   public readonly uniqueId: string;
+  private readonly _serializer = new InstanceSerializer();
 
   constructor(dataJson: InstanceDataJson | undefined, instanceDataOptions: InstanceDataOptions, options: any | undefined) {
     this.database = instanceDataOptions.database as DatabaseTypeBy<GOT>;
@@ -37,9 +38,9 @@ export abstract class InstanceData<GOT extends Exclude<GameObjectType, string>> 
   public abstract onInitWithNoData(instanceDataOptions: InstanceDataOptions): void;
 
   public toJSON() {
-    const serializer = new InstanceSerializer();
-    this.serialize(serializer);
-    return serializer.toJSON();
+    this._serializer.clear();
+    this.serialize(this._serializer);
+    return this._serializer.toJSON();
   }
 
   public serialize(serializer: InstanceSerializer) {

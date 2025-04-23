@@ -10,6 +10,9 @@ export class InstanceSerializer {
         this._map.delete(identifier);
         return this;
     }
+    clear() {
+        this._map.clear();
+    }
     get(identifier) {
         return this._map.get(identifier);
     }

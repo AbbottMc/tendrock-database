@@ -13,6 +13,10 @@ export class InstanceSerializer {
     return this;
   }
 
+  public clear() {
+    this._map.clear();
+  }
+
   public get(identifier: string) {
     return this._map.get(identifier);
   }

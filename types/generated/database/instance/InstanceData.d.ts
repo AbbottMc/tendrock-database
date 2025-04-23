@@ -13,6 +13,7 @@ export declare abstract class InstanceData<GOT extends Exclude<GameObjectType, s
     readonly database: DatabaseTypeBy<GOT>;
     readonly identifier: string;
     readonly uniqueId: string;
+    private readonly _serializer;
     constructor(dataJson: InstanceDataJson | undefined, instanceDataOptions: InstanceDataOptions, options: any | undefined);
     abstract onDeserialize(dataJson: InstanceDataJson, instanceDataOptions: InstanceDataOptions, options: any | undefined): void;
     abstract onConstruct(options: unknown, instanceDataOptions: InstanceDataOptions): void;
