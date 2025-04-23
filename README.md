@@ -1,6 +1,6 @@
 # Tendrock-Database
 
-[ 📃 [English](./README.md)  |  ✅ Simplified Chinese ]
+[ ✅ English  |  [📃简体中文](./README_CN.md) ]
 
 ```cmd
 npm install @tendrock/database@latest
