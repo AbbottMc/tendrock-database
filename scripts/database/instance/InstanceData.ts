@@ -22,6 +22,7 @@ export abstract class InstanceData<GOT extends Exclude<GameObjectType, string>> 
     this.database = instanceDataOptions.database as DatabaseTypeBy<GOT>;
     this.identifier = instanceDataOptions.identifier;
     this.uniqueId = instanceDataOptions.uniqueId;
+    this.beforeConstructorHook(dataJson, instanceDataOptions, options);
     if (dataJson) {
       this.onDeserialize(dataJson, instanceDataOptions, options);
     } else if (options) {
@@ -29,6 +30,7 @@ export abstract class InstanceData<GOT extends Exclude<GameObjectType, string>> 
     } else {
       this.onInitWithNoData(instanceDataOptions);
     }
+    this.afterConstructorHook(dataJson, instanceDataOptions, options);
   }
 
   public abstract onDeserialize(dataJson: InstanceDataJson, instanceDataOptions: InstanceDataOptions, options: any | undefined): void;
@@ -36,6 +38,12 @@ export abstract class InstanceData<GOT extends Exclude<GameObjectType, string>> 
   public abstract onConstruct(options: unknown, instanceDataOptions: InstanceDataOptions): void;
 
   public abstract onInitWithNoData(instanceDataOptions: InstanceDataOptions): void;
+
+  public beforeConstructorHook(dataJson: InstanceDataJson | undefined, instanceDataOptions: InstanceDataOptions, options: any | undefined) {
+  }
+
+  public afterConstructorHook(dataJson: InstanceDataJson | undefined, instanceDataOptions: InstanceDataOptions, options: any | undefined) {
+  }
 
   public toJSON() {
     this._serializer.clear();

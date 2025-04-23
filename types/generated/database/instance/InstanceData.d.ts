@@ -18,6 +18,8 @@ export declare abstract class InstanceData<GOT extends Exclude<GameObjectType, s
     abstract onDeserialize(dataJson: InstanceDataJson, instanceDataOptions: InstanceDataOptions, options: any | undefined): void;
     abstract onConstruct(options: unknown, instanceDataOptions: InstanceDataOptions): void;
     abstract onInitWithNoData(instanceDataOptions: InstanceDataOptions): void;
+    beforeConstructorHook(dataJson: InstanceDataJson | undefined, instanceDataOptions: InstanceDataOptions, options: any | undefined): void;
+    afterConstructorHook(dataJson: InstanceDataJson | undefined, instanceDataOptions: InstanceDataOptions, options: any | undefined): void;
     toJSON(): {
         [k: string]: import("..").TendrockDynamicPropertyValue;
     };

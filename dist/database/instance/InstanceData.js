@@ -5,6 +5,7 @@ export class InstanceData {
         this.database = instanceDataOptions.database;
         this.identifier = instanceDataOptions.identifier;
         this.uniqueId = instanceDataOptions.uniqueId;
+        this.beforeConstructorHook(dataJson, instanceDataOptions, options);
         if (dataJson) {
             this.onDeserialize(dataJson, instanceDataOptions, options);
         }
@@ -14,6 +15,11 @@ export class InstanceData {
         else {
             this.onInitWithNoData(instanceDataOptions);
         }
+        this.afterConstructorHook(dataJson, instanceDataOptions, options);
+    }
+    beforeConstructorHook(dataJson, instanceDataOptions, options) {
+    }
+    afterConstructorHook(dataJson, instanceDataOptions, options) {
     }
     toJSON() {
         this._serializer.clear();
