@@ -1,13 +1,13 @@
 import {GameObjectDatabase} from "../GameObjectDatabase";
 import {ItemStack} from "@minecraft/server";
-import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
+import {TendrockDynamicPropertyValue} from "../DynamicPropertySerializer";
 import {Utils} from "../helper/Utils";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
-import {NamespacedDatabaseManager} from "../manager";
+import {DatabaseManager} from "../manager";
 
 export class ItemStackDatabase extends GameObjectDatabase<ItemStack> {
-  constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly itemStack: ItemStack) {
-    super(namespace, manager);
+  constructor(manager: DatabaseManager, protected readonly itemStack: ItemStack) {
+    super(manager);
     if (!itemStack) {
       throw new Error('ItemStack is null');
     }
@@ -23,8 +23,8 @@ export class ItemStackDatabase extends GameObjectDatabase<ItemStack> {
     });
   }
 
-  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: ItemStack) {
-    return new ItemStackDatabase(namespace, manager, gameObject);
+  public static create(manager: DatabaseManager, gameObject: ItemStack) {
+    return new ItemStackDatabase(manager, gameObject);
   }
 
   public getGameObject(): ItemStack {

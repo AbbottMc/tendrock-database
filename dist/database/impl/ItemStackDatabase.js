@@ -2,8 +2,8 @@ import { GameObjectDatabase } from "../GameObjectDatabase";
 import { Utils } from "../helper/Utils";
 import { UniqueIdUtils } from "../helper/UniqueIdUtils";
 export class ItemStackDatabase extends GameObjectDatabase {
-    constructor(namespace, manager, itemStack) {
-        super(namespace, manager);
+    constructor(manager, itemStack) {
+        super(manager);
         this.itemStack = itemStack;
         if (!itemStack) {
             throw new Error('ItemStack is null');
@@ -20,8 +20,8 @@ export class ItemStackDatabase extends GameObjectDatabase {
             this._dataMap.set(id, value);
         });
     }
-    static create(namespace, manager, gameObject) {
-        return new ItemStackDatabase(namespace, manager, gameObject);
+    static create(manager, gameObject) {
+        return new ItemStackDatabase(manager, gameObject);
     }
     getGameObject() {
         return this.itemStack;

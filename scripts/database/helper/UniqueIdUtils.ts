@@ -1,6 +1,6 @@
 import {ItemUniqueIdentifyHelper} from "./ItemUniqueIdentifyHelper";
 import {DimensionLocation, Entity, ItemStack} from "@minecraft/server";
-import {Utils} from "./Utils";
+import {LocationUtils} from "@tendrock/location-id";
 
 export class UniqueIdUtils {
   private static _itemUniqueIdHelper = new ItemUniqueIdentifyHelper();
@@ -12,10 +12,10 @@ export class UniqueIdUtils {
 
   public static getBlockUniqueId(locationOrLid: DimensionLocation | string) {
     if (typeof locationOrLid === 'string') {
-      if (!Utils.isLocationId(locationOrLid)) throw new Error(`Invalid block location id: "${locationOrLid}"`);
+      if (!LocationUtils.isLocationId(locationOrLid)) throw new Error(`Invalid block location id: "${locationOrLid}"`);
       return locationOrLid;
     }
-    return Utils.getLocationId(locationOrLid);
+    return LocationUtils.getLocationId(locationOrLid);
   }
 
   public static getEntityUniqueId(entity: Entity) {

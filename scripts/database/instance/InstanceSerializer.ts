@@ -1,4 +1,4 @@
-import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
+import {TendrockDynamicPropertyValue} from "../DynamicPropertySerializer";
 
 export class InstanceSerializer {
   private _map: Map<string, TendrockDynamicPropertyValue> = new Map<string, TendrockDynamicPropertyValue>();

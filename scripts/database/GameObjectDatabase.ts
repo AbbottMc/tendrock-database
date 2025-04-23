@@ -1,19 +1,19 @@
-import {NamespacedDynamicProperty, TendrockDynamicPropertyValue} from "./NamespacedDynamicProperty";
+import {DynamicPropertySerializer, TendrockDynamicPropertyValue} from "./DynamicPropertySerializer";
 import {Block, Entity, ItemStack, World} from "@minecraft/server";
 import {UniqueIdUtils} from "./helper/UniqueIdUtils";
-import {Constructor, NamespacedDatabaseManager} from "./manager";
+import {Constructor, DatabaseManager} from "./manager";
 import {Utils} from "./helper/Utils";
 
 export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
-  protected _dynamicProperty: NamespacedDynamicProperty;
+  protected _dynamicProperty: DynamicPropertySerializer;
   protected _dataMap: Map<string, TendrockDynamicPropertyValue> = new Map<string, TendrockDynamicPropertyValue>();
   protected _dirtyDataIdList: string[] = [];
   protected _dirtyDataIdBuffer: string[] = [];
   protected _isFlushing = false;
   protected _uid: string = '';
 
-  protected constructor(public readonly namespace: string, public readonly parentManager: NamespacedDatabaseManager) {
-    this._dynamicProperty = NamespacedDynamicProperty.create(namespace);
+  protected constructor(public readonly parentManager: DatabaseManager) {
+    this._dynamicProperty = DynamicPropertySerializer.Instance;
   }
 
   public abstract getGameObject(): GO;
@@ -79,8 +79,9 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
   }
 
   public delete(identifier: string) {
-    this._dataMap.delete(identifier);
+    const existAndDeleted = this._dataMap.delete(identifier);
     this._markDirty(identifier);
+    return existAndDeleted;
   }
 
   public forEach(callback: (identifier: string, value: TendrockDynamicPropertyValue) => void) {
@@ -140,5 +141,10 @@ export abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity 
   public _getDirtyDataIdList(runtimeId: string) {
     Utils.assertInvokedByTendrock(runtimeId);
     return this._dirtyDataIdList;
+  }
+
+  public _getAllDirtyDataIdList(runtimeId: string) {
+    Utils.assertInvokedByTendrock(runtimeId);
+    return this._dirtyDataIdList.concat(this._dirtyDataIdBuffer);
   }
 }

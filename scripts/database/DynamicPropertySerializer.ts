@@ -1,39 +1,30 @@
 import {Block, DimensionLocation, Entity, ItemStack, Vector3, world} from "@minecraft/server";
 import {Utils} from "./helper/Utils";
+import {LocationUtils} from "@tendrock/location-id";
 
 export type DynamicPropertyValue = boolean | number | string | Vector3 | undefined;
 export type DynamicPropertyObjectValue = { [key: string]: DynamicPropertyValue | DynamicPropertyObjectValue }
 export type TendrockDynamicPropertyValue = DynamicPropertyValue | DynamicPropertyObjectValue;
 
-export class NamespacedDynamicProperty {
+export class DynamicPropertySerializer {
   public static TendrockPropertyIdPrefix = '[tendrock]';
+  public static Instance = new DynamicPropertySerializer();
 
-  constructor(readonly namespace: string) {
-    if (namespace.includes('-')) {
-      throw new Error(`Invalid namespace: ${namespace}`);
-    }
-  }
-
-  protected static _dbMap: Map<string, NamespacedDynamicProperty> = new Map<string, NamespacedDynamicProperty>();
-
-  public static create(namespace: string) {
-    const db = this._dbMap.get(namespace) ?? new NamespacedDynamicProperty(namespace);
-    this._dbMap.set(namespace, db);
-    return db;
+  protected constructor() {
   }
 
   public getDataIdentifier(identifier: string) {
     if (identifier.includes('-')) {
       throw new Error(`Invalid identifier: "${identifier}"`);
     }
-    return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${identifier}`;
+    return `${DynamicPropertySerializer.TendrockPropertyIdPrefix}${identifier}`;
   }
 
   public getBlockDataIdentifier(locationOrLid: DimensionLocation | string, identifier: string) {
     if (identifier.includes('-')) {
       throw new Error(`Invalid identifier: "${identifier}"`);
     }
-    return `${NamespacedDynamicProperty.TendrockPropertyIdPrefix}${this.namespace}-${typeof locationOrLid === 'string' ? locationOrLid : Utils.getLocationId(locationOrLid)}-${identifier}`;
+    return `${DynamicPropertySerializer.TendrockPropertyIdPrefix}${typeof locationOrLid === 'string' ? locationOrLid : LocationUtils.getLocationId(locationOrLid)}-${identifier}`;
   }
 
   public extractDataIdentifier(dataIdentifier: string) {
@@ -47,17 +38,17 @@ export class NamespacedDynamicProperty {
     if (!this.validateBlockDataIdentifier(dataIdentifier)) {
       return dataIdentifier;
     }
-    const lid = typeof block === 'string' ? block : Utils.getLocationId(block);
+    const lid = typeof block === 'string' ? block : LocationUtils.getLocationId(block);
     const blockDataIdentifier = this.extractDataIdentifier(dataIdentifier);
     return blockDataIdentifier.startsWith(lid) ? blockDataIdentifier.substring(lid.length + 2) : blockDataIdentifier;
   }
 
   public validateDataIdentifier(identifier: string) {
-    return identifier.startsWith(`${NamespacedDynamicProperty.TendrockPropertyIdPrefix + this.namespace}-`);
+    return identifier.startsWith(`${DynamicPropertySerializer.TendrockPropertyIdPrefix}-`);
   }
 
   public validateBlockDataIdentifier(identifier: string) {
-    return identifier.startsWith(`${NamespacedDynamicProperty.TendrockPropertyIdPrefix + this.namespace}-`) && identifier.split('-').length === 3;
+    return identifier.startsWith(`${DynamicPropertySerializer.TendrockPropertyIdPrefix}-`) && identifier.split('-').length === 3;
   }
 
   public putToWorld(identifier: string, value: TendrockDynamicPropertyValue) {

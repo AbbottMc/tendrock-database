@@ -5,4 +5,4 @@ export * from './GameObjectDatabase'
 export * from './instance'
 export {
   TendrockDynamicPropertyValue, DynamicPropertyObjectValue, DynamicPropertyValue
-} from './NamespacedDynamicProperty'
+} from './DynamicPropertySerializer'

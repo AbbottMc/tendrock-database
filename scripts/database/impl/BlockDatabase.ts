@@ -1,19 +1,20 @@
 import {GameObjectDatabase} from "../GameObjectDatabase";
 import {Block, DimensionLocation, world} from "@minecraft/server";
-import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
+import {TendrockDynamicPropertyValue} from "../DynamicPropertySerializer";
 import {Utils} from "../helper/Utils";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
-import {NamespacedDatabaseManager} from "../manager";
+import {DatabaseManager} from "../manager";
 import {tryCatch} from "@tendrock/lib";
+import {LocationUtils} from "@tendrock/location-id";
 
 export class BlockDatabase extends GameObjectDatabase<Block> {
   protected block: Block | undefined;
   protected location: DimensionLocation;
 
-  constructor(namespace: string, manager: NamespacedDatabaseManager, locationOrLid: DimensionLocation | string, initialIdList?: [string, string][]) {
-    super(namespace, manager);
+  constructor(manager: DatabaseManager, locationOrLid: DimensionLocation | string, initialIdList?: [string, string][]) {
+    super(manager);
     this._uid = UniqueIdUtils.getBlockUniqueId(locationOrLid);
-    this.location = Utils.getDimensionLocation(locationOrLid);
+    this.location = LocationUtils.getDimensionLocation(locationOrLid);
     this.initBlock();
     if (initialIdList) {
       initialIdList.forEach(([propertyId, dataId]) => {
@@ -27,8 +28,8 @@ export class BlockDatabase extends GameObjectDatabase<Block> {
     this.block = tryCatch(() => this.location.dimension.getBlock(this.location)).data;
   }
 
-  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: DimensionLocation | string, initialIdList: [string, string][]) {
-    return new BlockDatabase(namespace, manager, gameObject, initialIdList);
+  public static create(manager: DatabaseManager, gameObject: DimensionLocation | string, initialIdList: [string, string][]) {
+    return new BlockDatabase(manager, gameObject, initialIdList);
   }
 
   public getGameObject(): Block {

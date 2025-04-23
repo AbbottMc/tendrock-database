@@ -7,24 +7,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { Block, Entity, EntityInitializationCause, ItemStack, system, world } from "@minecraft/server";
-import { NamespacedDatabaseManager } from "./NamespacedDatabaseManager";
+import { Block, Entity, EntityInitializationCause, ItemStack, system, world, World } from "@minecraft/server";
+import { BlockDatabase, EntityDatabase, ItemStackDatabase, WorldDatabase } from "../impl";
 import { UniqueIdUtils } from "../helper/UniqueIdUtils";
+import { BetterSet, SetMap } from "@tenolib/map";
 import { Utils } from "../helper/Utils";
-import { SetMap } from "@tenolib/map";
+import { DatabaseTypes } from "../DatabaseTypes";
 import { ConstructorRegistryImpl } from "../instance/ConstructorRegistry";
+import { LocationUtils } from "@tendrock/location-id";
 export class DatabaseManager {
     constructor() {
         this._databaseManagerMap = new Map();
         this._eventCallbackMap = new SetMap();
-        this._blockToDatabaseMap = new SetMap();
-        this._itemToDatabaseMap = new SetMap();
-        this._entityToDatabaseMap = new SetMap();
         this._changingEntityDatabaseBuffer = new Map();
         this._isInitialized = false;
-        this._flushInterval = 3 * 6 * 20;
-        this._autoUpdateSourceEntity = false;
+        this._flushInterval = 6 * 20;
+        this._autoUpdateSourceEntity = true;
         this._autoFlush = true;
+        this._blockDatabaseMap = new Map();
+        this._itemDatabaseMap = new Map();
+        this._entityDatabaseMap = new Map();
+        this._blockInitialIdListMap = new SetMap();
+        this._worldInitialIdList = [];
+        this._isFlushing = false;
+        this._dirtyDatabaseList = new BetterSet();
+        this._dirtyDatabaseBuffer = new BetterSet();
         this._triggerStartupEventWhenSystemStartup();
         this._loadWorldDynamicPropertiesWhenWorldLoad();
         this._flushDataWhenPlayerLeave();
@@ -37,30 +44,22 @@ export class DatabaseManager {
     }
     *_loadAndParseWorldDynamicPropertiesGenerator() {
         for (const id of world.getDynamicPropertyIds()) {
-            const { namespace, lid, dataIdentifier } = Utils.parseIdentifier(id);
-            if (!namespace)
-                continue;
-            const manager = this._createNamespacedManagerIfAbsent(namespace);
+            const { lid, dataIdentifier } = Utils.parseIdentifier(id);
             if (lid) {
-                manager._addBlockDataId(UniqueIdUtils.RuntimeId, lid, id, dataIdentifier);
+                this._addBlockDataId(lid, id, dataIdentifier);
             }
             else {
-                manager._addWorldDataId(UniqueIdUtils.RuntimeId, id, dataIdentifier);
+                this._addWorldDataId(id, dataIdentifier);
             }
             yield;
-        }
-    }
-    *_initWorldBlockDataGenerator() {
-        for (const [namespace, manager] of this._databaseManagerMap) {
-            yield* manager._initWorldBlockDataGenerator(UniqueIdUtils.RuntimeId);
         }
     }
     _loadWorldDynamicProperties() {
         return __awaiter(this, void 0, void 0, function* () {
             yield Utils.runJob(this._loadAndParseWorldDynamicPropertiesGenerator());
             yield Utils.runJob(this._initWorldBlockDataGenerator());
-            this._isInitialized = true;
             this._startAutoFlushTask();
+            this._isInitialized = true;
             this._doReady();
         });
     }
@@ -69,17 +68,35 @@ export class DatabaseManager {
             this._loadWorldDynamicProperties().then(() => world.afterEvents.worldLoad.unsubscribe(callback));
         });
     }
-    _createNamespacedManagerIfAbsent(namespace) {
-        let databaseManager = this._databaseManagerMap.get(namespace);
-        if (databaseManager) {
-            return databaseManager;
-        }
-        databaseManager = NamespacedDatabaseManager._create(UniqueIdUtils.RuntimeId, namespace, this);
-        this._databaseManagerMap.set(namespace, databaseManager);
-        return databaseManager;
+    _addBlockDataId(lid, propertyId, dataId) {
+        this._blockInitialIdListMap.addValue(lid, [propertyId, dataId]);
     }
-    _getNamespacedManager(namespace) {
-        return this._databaseManagerMap.get(namespace);
+    _addWorldDataId(propertyId, dataId) {
+        if (!this._worldInitialIdList) {
+            throw new Error("World data id list is used and frozen.");
+        }
+        this._worldInitialIdList.push([propertyId, dataId]);
+    }
+    *_initWorldDataGenerator() {
+        if (this._worldInitialIdList) {
+            this._worldDatabase = WorldDatabase.create(this, world, this._worldInitialIdList);
+            this._worldInitialIdList = undefined;
+            yield;
+        }
+    }
+    *_initBlockDataGenerator() {
+        if (this._blockInitialIdListMap.size > 0) {
+            for (const [lid, set] of this._blockInitialIdListMap) {
+                const blockDatabase = BlockDatabase.create(this, lid, set);
+                this._blockDatabaseMap.set(lid, blockDatabase);
+                yield;
+            }
+            this._blockInitialIdListMap.clear();
+        }
+    }
+    *_initWorldBlockDataGenerator() {
+        yield* this._initWorldDataGenerator();
+        yield* this._initBlockDataGenerator();
     }
     _doStartup() {
         var _a;
@@ -117,80 +134,20 @@ export class DatabaseManager {
     isReady() {
         return this._isInitialized;
     }
-    createIfAbsent(namespace, gameObject) {
-        const databaseManager = this._createNamespacedManagerIfAbsent(namespace);
-        return databaseManager.createIfAbsent(gameObject);
-    }
-    get(namespace, gameObject) {
-        const databaseManager = this._getNamespacedManager(namespace);
-        if (!databaseManager) {
-            return undefined;
+    _markDirty(runtimeId, dataBase) {
+        Utils.assertInvokedByTendrock(runtimeId);
+        const dirtyDatabases = this._isFlushing ? this._dirtyDatabaseBuffer : this._dirtyDatabaseList;
+        // console.log('dirty database list before mark dirty: ', JSON.stringify(dirtyDatabases.map(db => db.getUid())));
+        if (dirtyDatabases.includes(dataBase)) {
+            return;
         }
-        return databaseManager.get(gameObject);
-    }
-    setData(namespace, gameObject, identifier, value) {
-        const database = this.createIfAbsent(namespace, gameObject);
-        database.set(identifier, value);
-    }
-    getData(namespace, gameObject, identifier) {
-        const database = this.get(namespace, gameObject);
-        return database === null || database === void 0 ? void 0 : database.get(identifier);
-    }
-    buildDataInstanceIfPresent(namespace, gameObject, identifier, objectConstructor, options) {
-        const database = this.get(namespace, gameObject);
-        return database === null || database === void 0 ? void 0 : database.buildInstanceIfPresent(identifier, objectConstructor, options);
-    }
-    getDataBuiltInstance(namespace, gameObject, identifier) {
-        const database = this.get(namespace, gameObject);
-        return database === null || database === void 0 ? void 0 : database.getBuiltInstance(identifier);
-    }
-    createDataInstanceIfAbsent(namespace, gameObject, identifier, objectConstructor, options) {
-        const database = this.createIfAbsent(namespace, gameObject);
-        return database.createInstanceIfAbsent(identifier, objectConstructor, options);
-    }
-    remove(namespace, gameObject, clearData = false) {
-        const databaseManager = this._getNamespacedManager(namespace);
-        databaseManager === null || databaseManager === void 0 ? void 0 : databaseManager.remove(gameObject, clearData);
-    }
-    _prepare(gameObject) {
-        if (gameObject instanceof Block) {
-            return {
-                uniqueId: UniqueIdUtils.getBlockUniqueId(gameObject),
-                gameObjectToDatabaseMap: this._blockToDatabaseMap,
-            };
+        const uniqueId = dataBase.getUid();
+        // If database is removed or not exist, skip.
+        if (!this._blockDatabaseMap.has(uniqueId) && !this._entityDatabaseMap.has(uniqueId) &&
+            !this._itemDatabaseMap.has(uniqueId) && this._worldDatabase !== dataBase) {
+            return;
         }
-        else if (gameObject instanceof Entity) {
-            return {
-                uniqueId: UniqueIdUtils.getEntityUniqueId(gameObject),
-                gameObjectToDatabaseMap: this._entityToDatabaseMap,
-            };
-        }
-        else if (gameObject instanceof ItemStack) {
-            return {
-                uniqueId: UniqueIdUtils.getItemUniqueId(gameObject),
-                gameObjectToDatabaseMap: this._itemToDatabaseMap,
-            };
-        }
-        else {
-            return {
-                uniqueId: 'world@0',
-            };
-        }
-    }
-    getDatabaseListByGameObject(gameObject) {
-        var _a;
-        const { uniqueId, gameObjectToDatabaseMap } = this._prepare(gameObject);
-        if (!gameObjectToDatabaseMap || !uniqueId) {
-            return [];
-        }
-        return ((_a = gameObjectToDatabaseMap.get(uniqueId)) !== null && _a !== void 0 ? _a : []);
-    }
-    getDatabaseList(namespace, type) {
-        const manager = this._getNamespacedManager(namespace);
-        if (!manager) {
-            return [];
-        }
-        return manager.getDatabaseList(type);
+        dirtyDatabases.push(dataBase);
     }
     setFlushInterval(interval, flush = true) {
         this._flushInterval = interval;
@@ -220,9 +177,13 @@ export class DatabaseManager {
     autoUpdateSourceEntity() {
         return this._autoUpdateSourceEntity;
     }
-    *flushDatabase(database) {
+    *_flushDatabase(database) {
+        if (!database) {
+            return;
+        }
         database._beginFlush(UniqueIdUtils.RuntimeId);
         const dirtyIdList = database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
+        // console.log(`flush database "${database.getUid()}: " `, JSON.stringify(dirtyIdList))
         for (const identifier of dirtyIdList) {
             if (database.size() <= 0 && dirtyIdList.length <= 0) {
                 yield;
@@ -236,9 +197,22 @@ export class DatabaseManager {
         // console.log(`flush ${database._getDirtyDataIdList(UniqueIdUtils.RuntimeId).length} data`);
         database._endFlush(UniqueIdUtils.RuntimeId);
     }
-    flushDatabaseSync(database) {
+    *_flushDataGenerator() {
+        this._beginFlush();
+        // console.log('start flush')
+        const databaseValues = this.getDirtyDatabaseList();
+        if (databaseValues.length > 0) {
+            for (const database of databaseValues) {
+                yield* this._flushDatabase(database);
+            }
+        }
+        this._endFlush();
+        // console.log('flush end')
+    }
+    _flushDatabaseSync(database, flushAllDirtyData) {
         database._beginFlush(UniqueIdUtils.RuntimeId);
-        const dirtyIdList = database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
+        const dirtyIdList = flushAllDirtyData ? database._getAllDirtyDataIdList(UniqueIdUtils.RuntimeId) : database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
+        // console.log(`flush ${dirtyIdList.length} data`)
         for (const identifier of dirtyIdList) {
             if (database.size() <= 0 && dirtyIdList.length <= 0) {
                 break;
@@ -248,50 +222,41 @@ export class DatabaseManager {
             database._saveData(UniqueIdUtils.RuntimeId, identifier, value);
         }
         database._endFlush(UniqueIdUtils.RuntimeId);
+        // console.log(`database "${database.getUid()}" flushed`);
     }
-    *flushAllDataGenerator() {
-        const managerValues = this._databaseManagerMap.values();
-        for (const manager of managerValues) {
-            manager._beginFlush(UniqueIdUtils.RuntimeId);
-            const databaseValues = manager.getDirtyDatabaseList();
-            if (databaseValues.length > 0) {
-                for (const database of databaseValues) {
-                    yield* this.flushDatabase(database);
-                }
-            }
-            manager._endFlush(UniqueIdUtils.RuntimeId);
-        }
-    }
-    flushSync() {
+    _flushSyncImpl(includeBuffer = false) {
         if (!this.isReady())
             return;
-        const managerValues = this._databaseManagerMap.values();
-        for (const manager of managerValues) {
-            manager._beginFlush(UniqueIdUtils.RuntimeId);
-            const databaseValues = manager.getDirtyDatabaseList();
-            if (databaseValues.length <= 0) {
-                continue;
-            }
-            for (const database of databaseValues) {
-                this.flushDatabaseSync(database);
-            }
-            manager._endFlush(UniqueIdUtils.RuntimeId);
+        this._beginFlush();
+        const databaseValues = includeBuffer ? this.getAllDirtyDatabaseList() : this.getDirtyDatabaseList();
+        // console.log('flush database when shutdown, dirty database count: ', databaseValues.length)
+        if (databaseValues.length <= 0) {
+            return;
         }
+        for (const database of databaseValues) {
+            this._flushDatabaseSync(database, includeBuffer);
+        }
+        this._endFlush(includeBuffer);
+        // console.log('databases flushed');
+    }
+    flushSync() {
+        this._flushSyncImpl(false);
+    }
+    _flushWhenShutdown() {
+        this._flushSyncImpl(true);
     }
     flush() {
         if (!this.isReady())
             return;
-        system.runJob(this.flushAllDataGenerator());
+        system.runJob(this._flushDataGenerator());
     }
     _flushDataWhenPlayerLeave() {
         world.beforeEvents.playerLeave.subscribe(({ player }) => {
             if (world.getAllPlayers().length === 1) {
-                this.flushSync();
+                this._flushWhenShutdown();
             }
             else {
-                for (const manager of this._databaseManagerMap.values()) {
-                    this.flushDatabase(manager.createIfAbsent(player));
-                }
+                this._flushDatabase(this.get(player));
             }
         });
     }
@@ -308,18 +273,154 @@ export class DatabaseManager {
             this.flush();
         }, this._flushInterval);
     }
-    _getBlockToDatabaseMap(runtimeId) {
-        Utils.assertInvokedByTendrock(runtimeId);
-        return this._blockToDatabaseMap;
+    _beginFlush() {
+        this._isFlushing = true;
     }
-    _getEntityToDatabaseMap(runtimeId) {
-        Utils.assertInvokedByTendrock(runtimeId);
-        return this._entityToDatabaseMap;
+    _endFlush(allDirtyDataFlushed = false) {
+        if (allDirtyDataFlushed) {
+            this._dirtyDatabaseList = new BetterSet();
+            this._dirtyDatabaseBuffer = new BetterSet();
+            this._isFlushing = false;
+        }
+        else {
+            this._dirtyDatabaseList = this._dirtyDatabaseBuffer;
+            this._isFlushing = false;
+            this._dirtyDatabaseBuffer = new BetterSet();
+        }
     }
-    _getItemToDatabaseMap(runtimeId) {
-        Utils.assertInvokedByTendrock(runtimeId);
-        return this._itemToDatabaseMap;
+    // ---------------------------------------------------------
+    _prepare(gameObject) {
+        if (typeof gameObject === 'string' || gameObject instanceof Block) {
+            const uniqueId = UniqueIdUtils.getBlockUniqueId(gameObject);
+            const databaseMap = this._blockDatabaseMap;
+            const databaseType = BlockDatabase;
+            return { uniqueId, databaseMap, databaseType };
+        }
+        else if (gameObject instanceof Entity) {
+            const uniqueId = UniqueIdUtils.getEntityUniqueId(gameObject);
+            const databaseMap = this._entityDatabaseMap;
+            const databaseType = EntityDatabase;
+            return { uniqueId, databaseMap, databaseType };
+        }
+        else if (gameObject instanceof ItemStack) {
+            const uniqueId = UniqueIdUtils.getItemUniqueId(gameObject);
+            const databaseMap = this._itemDatabaseMap;
+            const databaseType = ItemStackDatabase;
+            return { uniqueId, databaseMap, databaseType };
+        }
+        else if (gameObject instanceof World) {
+            const databaseType = WorldDatabase;
+            return { uniqueId: undefined, databaseMap: undefined, databaseType };
+        }
+        else {
+            throw new Error(`Invalid game object type.`);
+        }
     }
+    createIfAbsent(gameObject) {
+        const { uniqueId, databaseMap, databaseType } = this._prepare(gameObject);
+        // Is world database
+        if (!uniqueId || !databaseMap) {
+            if (this._worldDatabase) {
+                return this._worldDatabase;
+            }
+            this._worldDatabase = WorldDatabase.create(this, world);
+            this._worldInitialIdList = undefined;
+            return this._worldDatabase;
+        }
+        let database = databaseMap.get(uniqueId);
+        if (database) {
+            return database;
+        }
+        database = databaseType.create(this, gameObject);
+        databaseMap.set(uniqueId, database);
+        return database;
+    }
+    get(gameObject) {
+        const { uniqueId, databaseMap } = this._prepare(gameObject);
+        if (!uniqueId || !databaseMap) {
+            return undefined;
+        }
+        return databaseMap.get(uniqueId);
+    }
+    remove(gameObject, clearProperty = false) {
+        const { uniqueId, databaseMap } = this._prepare(gameObject);
+        if (!uniqueId || !databaseMap) {
+            return;
+        }
+        const database = databaseMap.get(uniqueId);
+        if (!database) {
+            return;
+        }
+        if (clearProperty) {
+            database.clear();
+            this._dirtyDatabaseList.delete(database);
+            this._dirtyDatabaseBuffer.delete(database);
+        }
+        databaseMap.delete(uniqueId);
+    }
+    getDatabaseList(type) {
+        if (type === DatabaseTypes.World) {
+            return [this._worldDatabase];
+        }
+        else if (type === DatabaseTypes.Block) {
+            return Array.from(this._blockDatabaseMap.values());
+        }
+        else if (type === DatabaseTypes.Item) {
+            return Array.from(this._itemDatabaseMap.values());
+        }
+        else if (type === DatabaseTypes.Entity) {
+            return Array.from(this._entityDatabaseMap.values());
+        }
+        else {
+            throw new Error(`Invalid database type.`);
+        }
+    }
+    getWorldDatabase() {
+        return this._worldDatabase;
+    }
+    _addDatabase(runtimeId, database) {
+        Utils.assertInvokedByTendrock(runtimeId);
+        const { uniqueId, databaseMap } = this._prepare(database.getGameObject());
+        if (!databaseMap || !uniqueId) {
+            return;
+        }
+        if (databaseMap.has(uniqueId)) {
+            return;
+        }
+        databaseMap.set(uniqueId, database);
+    }
+    setData(gameObject, identifier, value) {
+        this.createIfAbsent(gameObject).set(identifier, value);
+    }
+    getData(gameObject, identifier) {
+        var _a;
+        return (_a = this.get(gameObject)) === null || _a === void 0 ? void 0 : _a.get(identifier);
+    }
+    deleteData(gameObject, identifier) {
+        const database = this.get(gameObject);
+        if (!database)
+            return false;
+        return database.delete(identifier);
+    }
+    buildDataInstanceIfPresent(gameObject, identifier, objectConstructor, options) {
+        const database = this.get(gameObject);
+        return database === null || database === void 0 ? void 0 : database.buildInstanceIfPresent(identifier, objectConstructor, options);
+    }
+    getDataBuiltInstance(gameObject, identifier) {
+        const database = this.get(gameObject);
+        return database === null || database === void 0 ? void 0 : database.getBuiltInstance(identifier);
+    }
+    createDataInstanceIfAbsent(gameObject, identifier, objectConstructor, options) {
+        const database = this.createIfAbsent(gameObject);
+        return database.createInstanceIfAbsent(identifier, objectConstructor, options);
+    }
+    getDirtyDatabaseList() {
+        return this._dirtyDatabaseList;
+    }
+    getAllDirtyDatabaseList() {
+        return this._dirtyDatabaseList.concat(this._dirtyDatabaseBuffer);
+    }
+    // --------------------------------------------------------
     _setChangingEntityDatabaseBuffer(runtimeId, locationId, entityDatabase) {
         Utils.assertInvokedByTendrock(runtimeId);
         // console.log(`set changing entity database buffer: ${locationId}`)
@@ -335,17 +436,15 @@ export class DatabaseManager {
         };
     }
 }
-export const databaseManager = new DatabaseManager();
+DatabaseManager.Instance = new DatabaseManager();
+export const databaseManager = DatabaseManager.Instance;
 world.beforeEvents.entityRemove.subscribe(({ removedEntity }) => {
     if (!databaseManager.autoUpdateSourceEntity())
         return;
-    const removedEntityDatabaseList = databaseManager
-        .getDatabaseListByGameObject(removedEntity)
-        .filter((e) => e.getUid() === removedEntity.id);
-    if (removedEntityDatabaseList.length <= 0)
+    const removedEntityDatabase = databaseManager.get(removedEntity);
+    if (!removedEntityDatabase)
         return;
-    const removedEntityDatabase = removedEntityDatabaseList[0];
-    const locationId = Utils.getLocationId(Object.assign(Object.assign({}, removedEntity.location), { dimension: removedEntity.dimension }), true);
+    const locationId = LocationUtils.getLocationId(Object.assign(Object.assign({}, removedEntity.location), { dimension: removedEntity.dimension }), true);
     databaseManager._setChangingEntityDatabaseBuffer(UniqueIdUtils.RuntimeId, locationId, removedEntityDatabase);
     system.runTimeout(() => {
         databaseManager._getChangingEntityDatabaseBuffer(UniqueIdUtils.RuntimeId, locationId).cleanBuffer();
@@ -356,7 +455,7 @@ world.afterEvents.entitySpawn.subscribe(({ entity, cause }) => {
         return;
     if (cause !== EntityInitializationCause.Event && cause !== EntityInitializationCause.Transformed)
         return;
-    const locationId = Utils.getLocationId(Object.assign(Object.assign({}, entity.location), { dimension: entity.dimension }), true);
+    const locationId = LocationUtils.getLocationId(Object.assign(Object.assign({}, entity.location), { dimension: entity.dimension }), true);
     // console.log('entity spawned: ', locationId)
     const { cleanBuffer, entityDatabase } = databaseManager._getChangingEntityDatabaseBuffer(UniqueIdUtils.RuntimeId, locationId);
     if (entityDatabase) {

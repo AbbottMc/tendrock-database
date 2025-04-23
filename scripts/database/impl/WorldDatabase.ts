@@ -1,12 +1,12 @@
 import {GameObjectDatabase} from "../GameObjectDatabase";
 import {World} from "@minecraft/server";
-import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
+import {TendrockDynamicPropertyValue} from "../DynamicPropertySerializer";
 import {Utils} from "../helper/Utils";
-import {NamespacedDatabaseManager} from "../manager";
+import {DatabaseManager} from "../manager";
 
 export class WorldDatabase extends GameObjectDatabase<World> {
-  constructor(namespace: string, manager: NamespacedDatabaseManager, protected readonly world: World, initialIdList?: [string, string][]) {
-    super(namespace, manager);
+  constructor(manager: DatabaseManager, protected readonly world: World, initialIdList?: [string, string][]) {
+    super(manager);
     this._uid = 'world@0';
     if (initialIdList) {
       initialIdList.forEach(([propertyId, dataId]) => {
@@ -16,8 +16,8 @@ export class WorldDatabase extends GameObjectDatabase<World> {
     }
   }
 
-  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: World, initialIdList?: [string, string][]) {
-    return new WorldDatabase(namespace, manager, gameObject, initialIdList);
+  public static create(manager: DatabaseManager, gameObject: World, initialIdList?: [string, string][]) {
+    return new WorldDatabase(manager, gameObject, initialIdList);
   }
 
   public getGameObject(): World {

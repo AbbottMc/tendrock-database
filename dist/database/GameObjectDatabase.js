@@ -1,16 +1,15 @@
-import { NamespacedDynamicProperty } from "./NamespacedDynamicProperty";
+import { DynamicPropertySerializer } from "./DynamicPropertySerializer";
 import { UniqueIdUtils } from "./helper/UniqueIdUtils";
 import { Utils } from "./helper/Utils";
 export class GameObjectDatabase {
-    constructor(namespace, parentManager) {
-        this.namespace = namespace;
+    constructor(parentManager) {
         this.parentManager = parentManager;
         this._dataMap = new Map();
         this._dirtyDataIdList = [];
         this._dirtyDataIdBuffer = [];
         this._isFlushing = false;
         this._uid = '';
-        this._dynamicProperty = NamespacedDynamicProperty.create(namespace);
+        this._dynamicProperty = DynamicPropertySerializer.Instance;
     }
     _markDirty(identifier) {
         const dirtyIdList = this.isFlushing() ? this._dirtyDataIdBuffer : this._dirtyDataIdList;
@@ -64,8 +63,9 @@ export class GameObjectDatabase {
         return retObj;
     }
     delete(identifier) {
-        this._dataMap.delete(identifier);
+        const existAndDeleted = this._dataMap.delete(identifier);
         this._markDirty(identifier);
+        return existAndDeleted;
     }
     forEach(callback) {
         this._dataMap.forEach((value, key) => callback(key, value));
@@ -113,5 +113,9 @@ export class GameObjectDatabase {
     _getDirtyDataIdList(runtimeId) {
         Utils.assertInvokedByTendrock(runtimeId);
         return this._dirtyDataIdList;
+    }
+    _getAllDirtyDataIdList(runtimeId) {
+        Utils.assertInvokedByTendrock(runtimeId);
+        return this._dirtyDataIdList.concat(this._dirtyDataIdBuffer);
     }
 }

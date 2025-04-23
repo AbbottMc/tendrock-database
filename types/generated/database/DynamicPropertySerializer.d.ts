@@ -4,12 +4,10 @@ export type DynamicPropertyObjectValue = {
     [key: string]: DynamicPropertyValue | DynamicPropertyObjectValue;
 };
 export type TendrockDynamicPropertyValue = DynamicPropertyValue | DynamicPropertyObjectValue;
-export declare class NamespacedDynamicProperty {
-    readonly namespace: string;
+export declare class DynamicPropertySerializer {
     static TendrockPropertyIdPrefix: string;
-    constructor(namespace: string);
-    protected static _dbMap: Map<string, NamespacedDynamicProperty>;
-    static create(namespace: string): NamespacedDynamicProperty;
+    static Instance: DynamicPropertySerializer;
+    protected constructor();
     getDataIdentifier(identifier: string): string;
     getBlockDataIdentifier(locationOrLid: DimensionLocation | string, identifier: string): string;
     extractDataIdentifier(dataIdentifier: string): string;

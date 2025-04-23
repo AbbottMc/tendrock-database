@@ -1,16 +1,16 @@
 import { ItemUniqueIdentifyHelper } from "./ItemUniqueIdentifyHelper";
-import { Utils } from "./Utils";
+import { LocationUtils } from "@tendrock/location-id";
 export class UniqueIdUtils {
     static getItemUniqueId(itemStack) {
         return this._itemUniqueIdHelper.getItemUniqueIdOrCreate(itemStack);
     }
     static getBlockUniqueId(locationOrLid) {
         if (typeof locationOrLid === 'string') {
-            if (!Utils.isLocationId(locationOrLid))
+            if (!LocationUtils.isLocationId(locationOrLid))
                 throw new Error(`Invalid block location id: "${locationOrLid}"`);
             return locationOrLid;
         }
-        return Utils.getLocationId(locationOrLid);
+        return LocationUtils.getLocationId(locationOrLid);
     }
     static getEntityUniqueId(entity) {
         return entity.id;

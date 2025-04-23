@@ -2,8 +2,8 @@ import { GameObjectDatabase } from "../GameObjectDatabase";
 import { Utils } from "../helper/Utils";
 import { UniqueIdUtils } from "../helper/UniqueIdUtils";
 export class EntityDatabase extends GameObjectDatabase {
-    constructor(namespace, manager, _entity) {
-        super(namespace, manager);
+    constructor(manager, _entity) {
+        super(manager);
         this._entity = _entity;
         this._uid = UniqueIdUtils.getEntityUniqueId(_entity);
         this._entity.getDynamicPropertyIds().forEach((propertyId) => {
@@ -14,8 +14,8 @@ export class EntityDatabase extends GameObjectDatabase {
             this._dataMap.set(id, value);
         });
     }
-    static create(namespace, manager, gameObject) {
-        return new EntityDatabase(namespace, manager, gameObject);
+    static create(manager, gameObject) {
+        return new EntityDatabase(manager, gameObject);
     }
     getGameObject() {
         return this._entity;

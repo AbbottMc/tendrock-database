@@ -1,13 +1,12 @@
-import {Dimension, DimensionLocation, system, Vector3, world} from "@minecraft/server";
+import {system, Vector3} from "@minecraft/server";
 import {
-  DynamicPropertyValue, NamespacedDynamicProperty, TendrockDynamicPropertyValue
-} from "../NamespacedDynamicProperty";
+  DynamicPropertyValue, DynamicPropertySerializer, TendrockDynamicPropertyValue
+} from "../DynamicPropertySerializer";
 import {UniqueIdUtils} from "./UniqueIdUtils";
 import {ConstructorRegistryImpl} from "../instance/ConstructorRegistry";
 import {GameObjectDatabase} from "../GameObjectDatabase";
 
 export interface IdentifierParseResult {
-  namespace: string;
   dataIdentifier: string;
   lid?: string;
 }
@@ -18,74 +17,6 @@ export class Utils {
     if (runtimeId !== UniqueIdUtils.RuntimeId) {
       throw new Error("This method can not be invoked manually!");
     }
-  }
-
-  public static getDimensionShortName(dimension: Dimension) {
-    switch (dimension.id) {
-      case "minecraft:overworld" :
-        return 'o';
-      case "minecraft:nether":
-        return 'n';
-      case "minecraft:the_end":
-        return 'e';
-    }
-    return undefined;
-  }
-
-  public static toFixed(num: number, precision = 2, isFixed = true) {
-    return isFixed ? num.toFixed(precision) : num;
-  }
-
-  public static getLocationId(dimensionLocation: DimensionLocation, fixed = false) {
-    const {dimension, ...location} = dimensionLocation;
-    const dimensionShortName = this.getDimensionShortName(dimension);
-    if (!dimensionShortName) {
-      throw new Error(`Invalid dimension: ${dimension.id}`);
-    }
-    return `${dimensionShortName}${this.toFixed(location.x, 2, fixed)}_${this.toFixed(location.y, 2, fixed)}_${this.toFixed(location.z, 2, fixed)}`.replaceAll('-', 'f');
-  }
-
-  public static isLocationId(str: string) {
-    return /^[one](f\d+|\d+)_(f\d+|\d+)_(f\d+|\d+)$/g.test(str);
-  }
-
-  public static lidToVec(lid: string): Vector3 {
-    const lidSub = lid.substring(1);
-    const lidSplit = lidSub.replaceAll('f', '-').split('_');
-    return {
-      x: Number(lidSplit[0]),
-      y: Number(lidSplit[1]),
-      z: Number(lidSplit[2])
-    }
-  }
-
-  public static lidToDimension(lid: string): Dimension {
-    if (!this.isLocationId(lid)) {
-      throw new Error(`Invalid location id: ${lid}`);
-    }
-    const dimensionShortName = lid.substring(0, 1);
-    switch (dimensionShortName) {
-      case 'o':
-        return world.getDimension("minecraft:overworld");
-      case 'n':
-        return world.getDimension("minecraft:nether");
-      case 'e':
-        return world.getDimension("minecraft:the_end");
-      default :
-        throw new Error(`Invalid dimension short name: ${dimensionShortName}`);
-    }
-  }
-
-  public static lidToDimensionLocation(lid: string): DimensionLocation {
-    if (!this.isLocationId(lid)) return {} as DimensionLocation;
-    return {dimension: this.lidToDimension(lid), ...this.lidToVec(lid)};
-  }
-
-  public static getDimensionLocation(locationOrLid: string | DimensionLocation) {
-    if (typeof locationOrLid === 'string') {
-      return this.lidToDimensionLocation(locationOrLid);
-    }
-    return locationOrLid;
   }
 
   public static isVector3(value: any): value is Vector3 {
@@ -127,26 +58,26 @@ export class Utils {
   }
 
   private static _getTendrockPropertyId(identifier: string) {
-    if (!identifier.startsWith(NamespacedDynamicProperty.TendrockPropertyIdPrefix)) {
+    if (!identifier.startsWith(DynamicPropertySerializer.TendrockPropertyIdPrefix)) {
       return undefined;
     }
-    return identifier.substring(NamespacedDynamicProperty.TendrockPropertyIdPrefix.length);
+    return identifier.substring(DynamicPropertySerializer.TendrockPropertyIdPrefix.length);
   }
 
   private static parseDataIdentifier(identifier: string) {
     const split = identifier.split('-');
-    if (split.length !== 2) {
+    if (split.length !== 1) {
       return undefined;
     }
-    return {namespace: split[0], dataIdentifier: split[1]};
+    return {dataIdentifier: identifier};
   }
 
   private static parseBlockDataIdentifier(identifier: string) {
     const split = identifier.split('-');
-    if (split.length !== 3) {
+    if (split.length !== 2) {
       return undefined;
     }
-    return {namespace: split[0], lid: split[1], dataIdentifier: split[2]};
+    return {lid: split[0], dataIdentifier: split[1]};
   }
 
   public static parseIdentifier(identifier: string): IdentifierParseResult {

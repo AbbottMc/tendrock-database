@@ -1,35 +1,56 @@
-import {Block, Entity, EntityInitializationCause, ItemStack, system, World, world} from "@minecraft/server";
-import {GameObjectDatabase} from "../GameObjectDatabase";
-import {DatabaseTypeBy, DatabaseTypeMap, NamespacedDatabaseManager} from "./NamespacedDatabaseManager";
+import {Block, Entity, EntityInitializationCause, ItemStack, system, world, World} from "@minecraft/server";
+import {BlockDatabase, EntityDatabase, ItemStackDatabase, WorldDatabase} from "../impl";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
+import {GameObjectDatabase} from "../GameObjectDatabase";
+import {BetterSet, SetMap} from "@tenolib/map";
 import {Utils} from "../helper/Utils";
-import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
-import {SetMap} from "@tenolib/map";
-import {BlockDatabase, EntityDatabase, ItemStackDatabase} from "../impl";
 import {DatabaseTypes} from "../DatabaseTypes";
-import {ConstructorRegistry} from "../instance";
-import {ConstructorRegistryImpl} from "../instance/ConstructorRegistry";
+import {ConstructorRegistry, ConstructorRegistryImpl} from "../instance/ConstructorRegistry";
+import {LocationUtils} from "@tendrock/location-id";
+import {TendrockDynamicPropertyValue} from "../DynamicPropertySerializer";
 
 export type Constructor<T> = new (...args: any[]) => T;
 export type GameObjectType = Block | Entity | ItemStack | World | string;
 
-export class DatabaseManager {
-  private readonly _databaseManagerMap = new Map<string, NamespacedDatabaseManager>();
-  private readonly _eventCallbackMap = new SetMap<string, (...args: any[]) => void>();
+export type DatabaseTypeBy<T> = T extends (string | Block) ? BlockDatabase : T extends Entity ? EntityDatabase : T extends ItemStack ? ItemStackDatabase : WorldDatabase;
+export type DatabaseFactory<T extends Block | Entity | ItemStack | World | string> = {
+  create(manager: DatabaseManager, gameObject: T, initialIdList?: [string, string][]): InstanceType<DatabaseFactory<T>>;
+} & (new (...args: any[]) => any);
 
-  private readonly _blockToDatabaseMap = new SetMap<string, BlockDatabase>();
-  private readonly _itemToDatabaseMap = new SetMap<string, ItemStackDatabase>();
-  private readonly _entityToDatabaseMap = new SetMap<string, EntityDatabase>();
+export type DatabaseTypeMap = {
+  [DatabaseTypes.Entity]: EntityDatabase;
+  [DatabaseTypes.Block]: BlockDatabase;
+  [DatabaseTypes.Item]: ItemStackDatabase;
+  [DatabaseTypes.World]: WorldDatabase;
+}
+
+export class DatabaseManager {
+  public static Instance = new DatabaseManager();
+
+  private readonly _databaseManagerMap = new Map<string, DatabaseManager>();
+  private readonly _eventCallbackMap = new SetMap<string, (...args: any[]) => void>();
 
   private readonly _changingEntityDatabaseBuffer = new Map<string, EntityDatabase>();
 
   private _isInitialized = false;
   private _autoFlushTaskId: number | undefined;
-  private _flushInterval = 3 * 6 * 20;
-  private _autoUpdateSourceEntity = false;
+  private _flushInterval = 6 * 20;
+  private _autoUpdateSourceEntity = true;
   private _autoFlush = true;
 
-  constructor() {
+  private _blockDatabaseMap = new Map<string, BlockDatabase>();
+  private _itemDatabaseMap = new Map<string, ItemStackDatabase>();
+  private _entityDatabaseMap = new Map<string, EntityDatabase>();
+  private _worldDatabase!: WorldDatabase;
+
+  private _blockInitialIdListMap = new SetMap<string, [string, string]>();
+  private _worldInitialIdList: [string, string][] | undefined = [];
+
+  private _isFlushing = false;
+  private _dirtyDatabaseList = new BetterSet<GameObjectDatabase<any>>();
+  private _dirtyDatabaseBuffer = new BetterSet<GameObjectDatabase<any>>();
+
+  protected constructor() {
     this._triggerStartupEventWhenSystemStartup();
     this._loadWorldDynamicPropertiesWhenWorldLoad();
     this._flushDataWhenPlayerLeave();
@@ -44,29 +65,21 @@ export class DatabaseManager {
 
   private* _loadAndParseWorldDynamicPropertiesGenerator(): Generator<void, void, void> {
     for (const id of world.getDynamicPropertyIds()) {
-      const {namespace, lid, dataIdentifier} = Utils.parseIdentifier(id);
-      if (!namespace) continue;
-      const manager = this._createNamespacedManagerIfAbsent(namespace);
+      const {lid, dataIdentifier} = Utils.parseIdentifier(id);
       if (lid) {
-        manager._addBlockDataId(UniqueIdUtils.RuntimeId, lid, id, dataIdentifier);
+        this._addBlockDataId(lid, id, dataIdentifier);
       } else {
-        manager._addWorldDataId(UniqueIdUtils.RuntimeId, id, dataIdentifier);
+        this._addWorldDataId(id, dataIdentifier);
       }
       yield;
-    }
-  }
-
-  private* _initWorldBlockDataGenerator(): Generator<void, void, void> {
-    for (const [namespace, manager] of this._databaseManagerMap) {
-      yield* manager._initWorldBlockDataGenerator(UniqueIdUtils.RuntimeId);
     }
   }
 
   private async _loadWorldDynamicProperties() {
     await Utils.runJob(this._loadAndParseWorldDynamicPropertiesGenerator());
     await Utils.runJob(this._initWorldBlockDataGenerator());
-    this._isInitialized = true;
     this._startAutoFlushTask();
+    this._isInitialized = true;
     this._doReady();
   }
 
@@ -76,18 +89,39 @@ export class DatabaseManager {
     });
   }
 
-  private _createNamespacedManagerIfAbsent(namespace: string) {
-    let databaseManager = this._databaseManagerMap.get(namespace);
-    if (databaseManager) {
-      return databaseManager;
-    }
-    databaseManager = NamespacedDatabaseManager._create(UniqueIdUtils.RuntimeId, namespace, this);
-    this._databaseManagerMap.set(namespace, databaseManager);
-    return databaseManager;
+  private _addBlockDataId(lid: string, propertyId: string, dataId: string) {
+    this._blockInitialIdListMap.addValue(lid, [propertyId, dataId]);
   }
 
-  protected _getNamespacedManager(namespace: string) {
-    return this._databaseManagerMap.get(namespace);
+  private _addWorldDataId(propertyId: string, dataId: string) {
+    if (!this._worldInitialIdList) {
+      throw new Error("World data id list is used and frozen.");
+    }
+    this._worldInitialIdList.push([propertyId, dataId]);
+  }
+
+  protected* _initWorldDataGenerator(): Generator<void, void, void> {
+    if (this._worldInitialIdList) {
+      this._worldDatabase = WorldDatabase.create(this, world, this._worldInitialIdList);
+      this._worldInitialIdList = undefined;
+      yield;
+    }
+  }
+
+  protected* _initBlockDataGenerator(): Generator<void, void, void> {
+    if (this._blockInitialIdListMap.size > 0) {
+      for (const [lid, set] of this._blockInitialIdListMap) {
+        const blockDatabase = BlockDatabase.create(this, lid, set);
+        this._blockDatabaseMap.set(lid, blockDatabase);
+        yield;
+      }
+      this._blockInitialIdListMap.clear();
+    }
+  }
+
+  private* _initWorldBlockDataGenerator(): Generator<void, void, void> {
+    yield* this._initWorldDataGenerator();
+    yield* this._initBlockDataGenerator();
   }
 
   private _doStartup() {
@@ -129,89 +163,22 @@ export class DatabaseManager {
     return this._isInitialized;
   }
 
-  public createIfAbsent<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T> {
-    const databaseManager = this._createNamespacedManagerIfAbsent(namespace);
-    return databaseManager.createIfAbsent(gameObject);
-  }
-
-  public get<T extends Block | Entity | ItemStack | World | string>(namespace: string, gameObject: T): DatabaseTypeBy<T> | undefined {
-    const databaseManager = this._getNamespacedManager(namespace);
-    if (!databaseManager) {
-      return undefined;
+  public _markDirty(runtimeId: string, dataBase: GameObjectDatabase<any>) {
+    Utils.assertInvokedByTendrock(runtimeId);
+    const dirtyDatabases = this._isFlushing ? this._dirtyDatabaseBuffer : this._dirtyDatabaseList;
+    // console.log('dirty database list before mark dirty: ', JSON.stringify(dirtyDatabases.map(db => db.getUid())));
+    if (dirtyDatabases.includes(dataBase)) {
+      return;
     }
-    return databaseManager.get(gameObject);
-  }
-
-  public setData(namespace: string, gameObject: GameObjectType, identifier: string, value: TendrockDynamicPropertyValue) {
-    const database = this.createIfAbsent(namespace, gameObject);
-    database.set(identifier, value);
-  }
-
-  public getData<T extends TendrockDynamicPropertyValue>(namespace: string, gameObject: GameObjectType, identifier: string): T {
-    const database = this.get(namespace, gameObject);
-    return database?.get(identifier) as T;
-  }
-
-  public buildDataInstanceIfPresent<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
-    const database = this.get(namespace, gameObject);
-    return database?.buildInstanceIfPresent(identifier, objectConstructor, options);
-  }
-
-  public getDataBuiltInstance<T>(namespace: string, gameObject: GameObjectType, identifier: string): T | undefined {
-    const database = this.get(namespace, gameObject);
-    return database?.getBuiltInstance(identifier);
-  }
-
-  public createDataInstanceIfAbsent<T>(namespace: string, gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
-    const database = this.createIfAbsent(namespace, gameObject);
-    return database.createInstanceIfAbsent(identifier, objectConstructor, options);
-  }
-
-  public remove(namespace: string, gameObject: GameObjectType, clearData = false): void {
-    const databaseManager = this._getNamespacedManager(namespace);
-    databaseManager?.remove(gameObject, clearData);
-  }
-
-  private _prepare(gameObject: GameObjectType): {
-    uniqueId: string | undefined,
-    gameObjectToDatabaseMap?: SetMap<string, GameObjectDatabase<any>>
-  } {
-    if (gameObject instanceof Block) {
-      return {
-        uniqueId: UniqueIdUtils.getBlockUniqueId(gameObject),
-        gameObjectToDatabaseMap: this._blockToDatabaseMap,
-      };
-    } else if (gameObject instanceof Entity) {
-      return {
-        uniqueId: UniqueIdUtils.getEntityUniqueId(gameObject),
-        gameObjectToDatabaseMap: this._entityToDatabaseMap,
-      };
-    } else if (gameObject instanceof ItemStack) {
-      return {
-        uniqueId: UniqueIdUtils.getItemUniqueId(gameObject),
-        gameObjectToDatabaseMap: this._itemToDatabaseMap,
-      }
-    } else {
-      return {
-        uniqueId: 'world@0',
-      }
+    const uniqueId = dataBase.getUid();
+    // If database is removed or not exist, skip.
+    if (
+      !this._blockDatabaseMap.has(uniqueId) && !this._entityDatabaseMap.has(uniqueId) &&
+      !this._itemDatabaseMap.has(uniqueId) && this._worldDatabase !== dataBase
+    ) {
+      return;
     }
-  }
-
-  public getDatabaseListByGameObject<T extends Block | Entity | ItemStack | World>(gameObject: T): DatabaseTypeBy<T>[] {
-    const {uniqueId, gameObjectToDatabaseMap} = this._prepare(gameObject);
-    if (!gameObjectToDatabaseMap || !uniqueId) {
-      return [] as DatabaseTypeBy<T>[];
-    }
-    return (gameObjectToDatabaseMap.get(uniqueId) ?? []) as DatabaseTypeBy<T>[];
-  }
-
-  public getDatabaseList<T extends DatabaseTypes>(namespace: string, type: T): DatabaseTypeMap[T][] {
-    const manager = this._getNamespacedManager(namespace);
-    if (!manager) {
-      return [] as DatabaseTypeMap[T][];
-    }
-    return manager.getDatabaseList(type);
+    dirtyDatabases.push(dataBase);
   }
 
   public setFlushInterval(interval: number, flush = true) {
@@ -247,9 +214,13 @@ export class DatabaseManager {
     return this._autoUpdateSourceEntity;
   }
 
-  protected* flushDatabase(database: GameObjectDatabase<any>): Generator<void, void, void> {
+  private* _flushDatabase(database: GameObjectDatabase<any> | undefined): Generator<void, void, void> {
+    if (!database) {
+      return;
+    }
     database._beginFlush(UniqueIdUtils.RuntimeId);
     const dirtyIdList = database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
+    // console.log(`flush database "${database.getUid()}: " `, JSON.stringify(dirtyIdList))
     for (const identifier of dirtyIdList) {
       if (database.size() <= 0 && dirtyIdList.length <= 0) {
         yield;
@@ -264,9 +235,23 @@ export class DatabaseManager {
     database._endFlush(UniqueIdUtils.RuntimeId);
   }
 
-  protected flushDatabaseSync(database: GameObjectDatabase<any>) {
+  private* _flushDataGenerator(): Generator<void, void, void> {
+    this._beginFlush();
+    // console.log('start flush')
+    const databaseValues = this.getDirtyDatabaseList();
+    if (databaseValues.length > 0) {
+      for (const database of databaseValues) {
+        yield* this._flushDatabase(database);
+      }
+    }
+    this._endFlush();
+    // console.log('flush end')
+  }
+
+  private _flushDatabaseSync(database: GameObjectDatabase<any>, flushAllDirtyData: boolean) {
     database._beginFlush(UniqueIdUtils.RuntimeId);
-    const dirtyIdList = database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
+    const dirtyIdList = flushAllDirtyData ? database._getAllDirtyDataIdList(UniqueIdUtils.RuntimeId) : database._getDirtyDataIdList(UniqueIdUtils.RuntimeId);
+    // console.log(`flush ${dirtyIdList.length} data`)
     for (const identifier of dirtyIdList) {
       if (database.size() <= 0 && dirtyIdList.length <= 0) {
         break;
@@ -276,62 +261,54 @@ export class DatabaseManager {
       database._saveData(UniqueIdUtils.RuntimeId, identifier, value);
     }
     database._endFlush(UniqueIdUtils.RuntimeId);
+    // console.log(`database "${database.getUid()}" flushed`);
   }
 
-  protected* flushAllDataGenerator(): Generator<void, void, void> {
-    const managerValues = this._databaseManagerMap.values();
-    for (const manager of managerValues) {
-      manager._beginFlush(UniqueIdUtils.RuntimeId);
-      const databaseValues = manager.getDirtyDatabaseList();
-      if (databaseValues.length > 0) {
-        for (const database of databaseValues) {
-          yield* this.flushDatabase(database);
-        }
-      }
-      manager._endFlush(UniqueIdUtils.RuntimeId);
+  private _flushSyncImpl(includeBuffer = false) {
+    if (!this.isReady()) return;
+    this._beginFlush();
+    const databaseValues = includeBuffer ? this.getAllDirtyDatabaseList() : this.getDirtyDatabaseList();
+    // console.log('flush database when shutdown, dirty database count: ', databaseValues.length)
+    if (databaseValues.length <= 0) {
+      return;
     }
+    for (const database of databaseValues) {
+      this._flushDatabaseSync(database, includeBuffer);
+    }
+    this._endFlush(includeBuffer);
+    // console.log('databases flushed');
   }
 
   public flushSync() {
-    if (!this.isReady()) return;
-    const managerValues = this._databaseManagerMap.values();
-    for (const manager of managerValues) {
-      manager._beginFlush(UniqueIdUtils.RuntimeId);
-      const databaseValues = manager.getDirtyDatabaseList();
-      if (databaseValues.length <= 0) {
-        continue;
-      }
-      for (const database of databaseValues) {
-        this.flushDatabaseSync(database);
-      }
-      manager._endFlush(UniqueIdUtils.RuntimeId);
-    }
+    this._flushSyncImpl(false);
+  }
+
+  private _flushWhenShutdown() {
+    this._flushSyncImpl(true);
   }
 
   public flush() {
     if (!this.isReady()) return;
-    system.runJob(this.flushAllDataGenerator());
+    system.runJob(this._flushDataGenerator());
   }
 
-  protected _flushDataWhenPlayerLeave() {
+  private _flushDataWhenPlayerLeave() {
     world.beforeEvents.playerLeave.subscribe(({player}) => {
       if (world.getAllPlayers().length === 1) {
-        this.flushSync();
+        this._flushWhenShutdown();
       } else {
-        for (const manager of this._databaseManagerMap.values()) {
-          this.flushDatabase(manager.createIfAbsent(player));
-        }
+        this._flushDatabase(this.get(player));
       }
     });
   }
 
-  protected _clearFlushJobIfPresent() {
+  private _clearFlushJobIfPresent() {
     if (this._autoFlushTaskId !== undefined) {
       system.clearJob(this._autoFlushTaskId);
     }
   }
 
-  protected _startAutoFlushTask() {
+  private _startAutoFlushTask() {
     this._clearFlushJobIfPresent();
     if (!this._autoFlush) return;
     this._autoFlushTaskId = system.runInterval(() => {
@@ -339,20 +316,166 @@ export class DatabaseManager {
     }, this._flushInterval);
   }
 
-  public _getBlockToDatabaseMap(runtimeId: string) {
-    Utils.assertInvokedByTendrock(runtimeId);
-    return this._blockToDatabaseMap;
+  private _beginFlush() {
+    this._isFlushing = true;
   }
 
-  public _getEntityToDatabaseMap(runtimeId: string) {
-    Utils.assertInvokedByTendrock(runtimeId);
-    return this._entityToDatabaseMap;
+  private _endFlush(allDirtyDataFlushed = false) {
+    if (allDirtyDataFlushed) {
+      this._dirtyDatabaseList = new BetterSet();
+      this._dirtyDatabaseBuffer = new BetterSet();
+      this._isFlushing = false;
+    } else {
+      this._dirtyDatabaseList = this._dirtyDatabaseBuffer;
+      this._isFlushing = false;
+      this._dirtyDatabaseBuffer = new BetterSet();
+    }
   }
 
-  public _getItemToDatabaseMap(runtimeId: string) {
-    Utils.assertInvokedByTendrock(runtimeId);
-    return this._itemToDatabaseMap;
+  // ---------------------------------------------------------
+
+  private _prepare<T extends Block | Entity | ItemStack | World | string>(gameObject: T): {
+    uniqueId: string | undefined,
+    databaseMap: Map<string, DatabaseTypeBy<T>> | undefined,
+    databaseType: DatabaseFactory<T>,
+    initialIdList?: [string, string][]
+  } {
+    if (typeof gameObject === 'string' || gameObject instanceof Block) {
+      const uniqueId = UniqueIdUtils.getBlockUniqueId(gameObject);
+      const databaseMap = this._blockDatabaseMap as Map<string, DatabaseTypeBy<T>>;
+      const databaseType = BlockDatabase as DatabaseFactory<T>;
+      return {uniqueId, databaseMap, databaseType};
+    } else if (gameObject instanceof Entity) {
+      const uniqueId = UniqueIdUtils.getEntityUniqueId(gameObject);
+      const databaseMap = this._entityDatabaseMap as Map<string, DatabaseTypeBy<T>>;
+      const databaseType = EntityDatabase as DatabaseFactory<T>;
+      return {uniqueId, databaseMap, databaseType};
+    } else if (gameObject instanceof ItemStack) {
+      const uniqueId = UniqueIdUtils.getItemUniqueId(gameObject);
+      const databaseMap = this._itemDatabaseMap as Map<string, DatabaseTypeBy<T>>;
+      const databaseType = ItemStackDatabase as DatabaseFactory<T>;
+      return {uniqueId, databaseMap, databaseType};
+    } else if (gameObject instanceof World) {
+      const databaseType = WorldDatabase as DatabaseFactory<T>;
+      return {uniqueId: undefined, databaseMap: undefined, databaseType};
+    } else {
+      throw new Error(`Invalid game object type.`);
+    }
   }
+
+  public createIfAbsent<T extends Block | Entity | ItemStack | World | string>(gameObject: T): DatabaseTypeBy<T> {
+    const {uniqueId, databaseMap, databaseType} = this._prepare(gameObject);
+    // Is world database
+    if (!uniqueId || !databaseMap) {
+      if (this._worldDatabase) {
+        return this._worldDatabase as DatabaseTypeBy<T>;
+      }
+      this._worldDatabase = WorldDatabase.create(this, world);
+      this._worldInitialIdList = undefined;
+      return this._worldDatabase as DatabaseTypeBy<T>;
+    }
+    let database = databaseMap.get(uniqueId)!;
+    if (database) {
+      return database;
+    }
+    database = databaseType.create(this, gameObject);
+    databaseMap.set(uniqueId, database);
+    return database;
+  }
+
+  public get<T extends Block | Entity | ItemStack | World | string>(gameObject: T): DatabaseTypeBy<T> | undefined {
+    const {uniqueId, databaseMap} = this._prepare(gameObject);
+    if (!uniqueId || !databaseMap) {
+      return undefined;
+    }
+    return databaseMap.get(uniqueId);
+  }
+
+  public remove<T extends Block | Entity | ItemStack | World | string>(gameObject: T, clearProperty = false) {
+    const {uniqueId, databaseMap} = this._prepare(gameObject);
+    if (!uniqueId || !databaseMap) {
+      return;
+    }
+    const database = databaseMap.get(uniqueId);
+    if (!database) {
+      return;
+    }
+    if (clearProperty) {
+      database.clear();
+      this._dirtyDatabaseList.delete(database);
+      this._dirtyDatabaseBuffer.delete(database);
+    }
+    databaseMap.delete(uniqueId);
+  }
+
+  public getDatabaseList<T extends DatabaseTypes>(type: T): DatabaseTypeMap[T][] {
+    if (type === DatabaseTypes.World) {
+      return [this._worldDatabase] as DatabaseTypeMap[T][];
+    } else if (type === DatabaseTypes.Block) {
+      return Array.from(this._blockDatabaseMap.values()) as DatabaseTypeMap[T][];
+    } else if (type === DatabaseTypes.Item) {
+      return Array.from(this._itemDatabaseMap.values()) as DatabaseTypeMap[T][];
+    } else if (type === DatabaseTypes.Entity) {
+      return Array.from(this._entityDatabaseMap.values()) as DatabaseTypeMap[T][];
+    } else {
+      throw new Error(`Invalid database type.`);
+    }
+  }
+
+  public getWorldDatabase(): DatabaseTypeBy<World> | undefined {
+    return this._worldDatabase;
+  }
+
+  public _addDatabase<T extends Block | Entity | ItemStack | World | string>(runtimeId: string, database: DatabaseTypeBy<T>) {
+    Utils.assertInvokedByTendrock(runtimeId);
+    const {uniqueId, databaseMap} = this._prepare(database.getGameObject());
+    if (!databaseMap || !uniqueId) {
+      return;
+    }
+    if (databaseMap.has(uniqueId)) {
+      return;
+    }
+    databaseMap.set(uniqueId, database);
+  }
+
+  public setData(gameObject: GameObjectType, identifier: string, value: TendrockDynamicPropertyValue) {
+    this.createIfAbsent(gameObject).set(identifier, value);
+  }
+
+  public getData<T extends TendrockDynamicPropertyValue>(gameObject: GameObjectType, identifier: string): T {
+    return this.get(gameObject)?.get(identifier) as T;
+  }
+
+  public deleteData(gameObject: GameObjectType, identifier: string): boolean {
+    const database = this.get(gameObject);
+    if (!database) return false;
+    return database.delete(identifier);
+  }
+
+  public buildDataInstanceIfPresent<T>(gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined {
+    const database = this.get(gameObject);
+    return database?.buildInstanceIfPresent(identifier, objectConstructor, options);
+  }
+
+  public getDataBuiltInstance<T>(gameObject: GameObjectType, identifier: string): T | undefined {
+    const database = this.get(gameObject);
+    return database?.getBuiltInstance(identifier);
+  }
+
+  public createDataInstanceIfAbsent<T>(gameObject: GameObjectType, identifier: string, objectConstructor: Constructor<T>, options?: unknown): T {
+    const database = this.createIfAbsent(gameObject);
+    return database.createInstanceIfAbsent(identifier, objectConstructor, options);
+  }
+
+  public getDirtyDatabaseList(): Array<GameObjectDatabase<any>> {
+    return this._dirtyDatabaseList;
+  }
+
+  public getAllDirtyDatabaseList(): Array<GameObjectDatabase<any>> {
+    return this._dirtyDatabaseList.concat(this._dirtyDatabaseBuffer);
+  }
+
+  // --------------------------------------------------------
 
   public _setChangingEntityDatabaseBuffer(runtimeId: string, locationId: string, entityDatabase: EntityDatabase) {
     Utils.assertInvokedByTendrock(runtimeId);
@@ -371,16 +494,13 @@ export class DatabaseManager {
   }
 }
 
-export const databaseManager = new DatabaseManager();
+export const databaseManager = DatabaseManager.Instance;
 
 world.beforeEvents.entityRemove.subscribe(({removedEntity}) => {
   if (!databaseManager.autoUpdateSourceEntity()) return;
-  const removedEntityDatabaseList = databaseManager
-    .getDatabaseListByGameObject(removedEntity)
-    .filter((e) => e.getUid() === removedEntity.id);
-  if (removedEntityDatabaseList.length <= 0) return;
-  const removedEntityDatabase = removedEntityDatabaseList[0];
-  const locationId = Utils.getLocationId({
+  const removedEntityDatabase = databaseManager.get(removedEntity);
+  if (!removedEntityDatabase) return;
+  const locationId = LocationUtils.getLocationId({
     ...removedEntity.location, dimension: removedEntity.dimension
   }, true);
   databaseManager._setChangingEntityDatabaseBuffer(
@@ -394,7 +514,7 @@ world.beforeEvents.entityRemove.subscribe(({removedEntity}) => {
 world.afterEvents.entitySpawn.subscribe(({entity, cause}) => {
   if (!databaseManager.autoUpdateSourceEntity()) return;
   if (cause !== EntityInitializationCause.Event && cause !== EntityInitializationCause.Transformed) return;
-  const locationId = Utils.getLocationId({
+  const locationId = LocationUtils.getLocationId({
     ...entity.location, dimension: entity.dimension
   }, true);
   // console.log('entity spawned: ', locationId)

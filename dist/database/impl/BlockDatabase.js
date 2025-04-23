@@ -3,11 +3,12 @@ import { world } from "@minecraft/server";
 import { Utils } from "../helper/Utils";
 import { UniqueIdUtils } from "../helper/UniqueIdUtils";
 import { tryCatch } from "@tendrock/lib";
+import { LocationUtils } from "@tendrock/location-id";
 export class BlockDatabase extends GameObjectDatabase {
-    constructor(namespace, manager, locationOrLid, initialIdList) {
-        super(namespace, manager);
+    constructor(manager, locationOrLid, initialIdList) {
+        super(manager);
         this._uid = UniqueIdUtils.getBlockUniqueId(locationOrLid);
-        this.location = Utils.getDimensionLocation(locationOrLid);
+        this.location = LocationUtils.getDimensionLocation(locationOrLid);
         this.initBlock();
         if (initialIdList) {
             initialIdList.forEach(([propertyId, dataId]) => {
@@ -19,8 +20,8 @@ export class BlockDatabase extends GameObjectDatabase {
     initBlock() {
         this.block = tryCatch(() => this.location.dimension.getBlock(this.location)).data;
     }
-    static create(namespace, manager, gameObject, initialIdList) {
-        return new BlockDatabase(namespace, manager, gameObject, initialIdList);
+    static create(manager, gameObject, initialIdList) {
+        return new BlockDatabase(manager, gameObject, initialIdList);
     }
     getGameObject() {
         if (!this.block) {

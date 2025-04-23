@@ -1,8 +1,8 @@
 import { GameObjectDatabase } from "../GameObjectDatabase";
 import { Utils } from "../helper/Utils";
 export class WorldDatabase extends GameObjectDatabase {
-    constructor(namespace, manager, world, initialIdList) {
-        super(namespace, manager);
+    constructor(manager, world, initialIdList) {
+        super(manager);
         this.world = world;
         this._uid = 'world@0';
         if (initialIdList) {
@@ -12,8 +12,8 @@ export class WorldDatabase extends GameObjectDatabase {
             });
         }
     }
-    static create(namespace, manager, gameObject, initialIdList) {
-        return new WorldDatabase(namespace, manager, gameObject, initialIdList);
+    static create(manager, gameObject, initialIdList) {
+        return new WorldDatabase(manager, gameObject, initialIdList);
     }
     getGameObject() {
         return this.world;

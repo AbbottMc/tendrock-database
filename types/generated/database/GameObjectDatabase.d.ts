@@ -1,16 +1,15 @@
-import { NamespacedDynamicProperty, TendrockDynamicPropertyValue } from "./NamespacedDynamicProperty";
+import { DynamicPropertySerializer, TendrockDynamicPropertyValue } from "./DynamicPropertySerializer";
 import { Block, Entity, ItemStack, World } from "@minecraft/server";
-import { Constructor, NamespacedDatabaseManager } from "./manager";
+import { Constructor, DatabaseManager } from "./manager";
 export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack | Entity | World)> {
-    readonly namespace: string;
-    readonly parentManager: NamespacedDatabaseManager;
-    protected _dynamicProperty: NamespacedDynamicProperty;
+    readonly parentManager: DatabaseManager;
+    protected _dynamicProperty: DynamicPropertySerializer;
     protected _dataMap: Map<string, TendrockDynamicPropertyValue>;
     protected _dirtyDataIdList: string[];
     protected _dirtyDataIdBuffer: string[];
     protected _isFlushing: boolean;
     protected _uid: string;
-    protected constructor(namespace: string, parentManager: NamespacedDatabaseManager);
+    protected constructor(parentManager: DatabaseManager);
     abstract getGameObject(): GO;
     abstract _saveData(runtimeId: string, identifier: string, value: TendrockDynamicPropertyValue): void;
     protected _markDirty(identifier: string): void;
@@ -22,7 +21,7 @@ export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack |
     createInstanceIfAbsent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T;
     buildInstanceIfPresent<T>(identifier: string, objectConstructor: Constructor<T>, options?: unknown): T | undefined;
     getBuiltInstance<T>(identifier: string): T | undefined;
-    delete(identifier: string): void;
+    delete(identifier: string): boolean;
     forEach(callback: (identifier: string, value: TendrockDynamicPropertyValue) => void): void;
     size(): number;
     entries(): IterableIterator<[string, TendrockDynamicPropertyValue]>;
@@ -35,4 +34,5 @@ export declare abstract class GameObjectDatabase<GO extends (Block | ItemStack |
     _beginFlush(runtimeId: string): void;
     _endFlush(runtimeId: string): void;
     _getDirtyDataIdList(runtimeId: string): string[];
+    _getAllDirtyDataIdList(runtimeId: string): string[];
 }

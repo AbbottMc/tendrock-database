@@ -1,15 +1,15 @@
 import {GameObjectDatabase} from "../GameObjectDatabase";
 import {Entity} from "@minecraft/server";
-import {TendrockDynamicPropertyValue} from "../NamespacedDynamicProperty";
+import {TendrockDynamicPropertyValue} from "../DynamicPropertySerializer";
 import {Utils} from "../helper/Utils";
 import {UniqueIdUtils} from "../helper/UniqueIdUtils";
-import {NamespacedDatabaseManager} from "../manager";
+import {DatabaseManager} from "../manager";
 
 export class EntityDatabase extends GameObjectDatabase<Entity> {
   private _newEntityBuffer: Entity | undefined;
 
-  constructor(namespace: string, manager: NamespacedDatabaseManager, protected _entity: Entity) {
-    super(namespace, manager);
+  constructor(manager: DatabaseManager, protected _entity: Entity) {
+    super(manager);
     this._uid = UniqueIdUtils.getEntityUniqueId(_entity);
     this._entity.getDynamicPropertyIds().forEach((propertyId) => {
       if (!this._dynamicProperty.validateDataIdentifier(propertyId)) return;
@@ -19,8 +19,8 @@ export class EntityDatabase extends GameObjectDatabase<Entity> {
     });
   }
 
-  public static create(namespace: string, manager: NamespacedDatabaseManager, gameObject: Entity) {
-    return new EntityDatabase(namespace, manager, gameObject);
+  public static create(manager: DatabaseManager, gameObject: Entity) {
+    return new EntityDatabase(manager, gameObject);
   }
 
   public getGameObject(): Entity {
