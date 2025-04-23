@@ -1,6 +1,8 @@
 import {Block, DimensionLocation, Entity, ItemStack, Vector3, world} from "@minecraft/server";
-import {Utils} from "./helper/Utils";
+import {IdentifierParseResult, Utils} from "./helper/Utils";
 import {LocationUtils} from "@tendrock/location-id";
+import {GameObjectDatabase} from "./GameObjectDatabase";
+import {ConstructorRegistryImpl} from "./instance/ConstructorRegistry";
 
 export type DynamicPropertyValue = boolean | number | string | Vector3 | undefined;
 export type DynamicPropertyObjectValue = { [key: string]: DynamicPropertyValue | DynamicPropertyObjectValue }
@@ -13,65 +15,109 @@ export class DynamicPropertySerializer {
   protected constructor() {
   }
 
-  public getDataIdentifier(identifier: string) {
-    if (identifier.includes('-')) {
-      throw new Error(`Invalid identifier: "${identifier}"`);
-    }
+  public serializeNonBlockDataIdToPropertyId(identifier: string) {
     return `${DynamicPropertySerializer.TendrockPropertyIdPrefix}${identifier}`;
   }
 
-  public getBlockDataIdentifier(locationOrLid: DimensionLocation | string, identifier: string) {
+  public serializeBlockIdToPropertyId(locationOrLid: DimensionLocation | string, identifier: string) {
     if (identifier.includes('-')) {
       throw new Error(`Invalid identifier: "${identifier}"`);
     }
     return `${DynamicPropertySerializer.TendrockPropertyIdPrefix}${typeof locationOrLid === 'string' ? locationOrLid : LocationUtils.getLocationId(locationOrLid)}-${identifier}`;
   }
 
-  public extractDataIdentifier(dataIdentifier: string) {
-    return dataIdentifier.split('-')[1];
+  public validatePropertyId(propertyId: string) {
+    return propertyId.startsWith(`${DynamicPropertySerializer.TendrockPropertyIdPrefix}`);
   }
 
-  public extractBlockDataIdentifier(block: Block | string, dataIdentifier: string) {
-    if (!dataIdentifier.includes('-')) {
-      return dataIdentifier;
+  public validateBlockPropertyId(propertyId: string) {
+    return propertyId.startsWith(`${DynamicPropertySerializer.TendrockPropertyIdPrefix}`) && propertyId.split('-').length === 2;
+  }
+
+  public getNonBlockDataId(propertyId: string) {
+    if (!this.validatePropertyId(propertyId)) {
+      return propertyId;
     }
-    if (!this.validateBlockDataIdentifier(dataIdentifier)) {
-      return dataIdentifier;
+    return propertyId.replace(DynamicPropertySerializer.TendrockPropertyIdPrefix, '');
+  }
+
+  public getBlockDataId(block: Block | string, propertyId: string) {
+    if (!this.validateBlockPropertyId(propertyId)) {
+      return propertyId;
     }
     const lid = typeof block === 'string' ? block : LocationUtils.getLocationId(block);
-    const blockDataIdentifier = this.extractDataIdentifier(dataIdentifier);
+    const blockDataIdentifier = this.getNonBlockDataId(propertyId);
     return blockDataIdentifier.startsWith(lid) ? blockDataIdentifier.substring(lid.length + 2) : blockDataIdentifier;
   }
 
-  public validateDataIdentifier(identifier: string) {
-    return identifier.startsWith(`${DynamicPropertySerializer.TendrockPropertyIdPrefix}-`);
+  public serializeDataToPropertyValue(value: TendrockDynamicPropertyValue): DynamicPropertyValue {
+    if (value === undefined) return undefined;
+    if (Utils.isVector3(value)) {
+      return value;
+    }
+    const valueType = typeof value;
+    if (valueType === 'object') {
+      return '[tendrock object]' + JSON.stringify(value);
+    } else if (valueType === 'string' || valueType === 'number' || valueType === 'boolean') {
+      return value as DynamicPropertyValue;
+    } else {
+      throw new Error(`Invalid data type: ${valueType}`);
+    }
   }
 
-  public validateBlockDataIdentifier(identifier: string) {
-    return identifier.startsWith(`${DynamicPropertySerializer.TendrockPropertyIdPrefix}-`) && identifier.split('-').length === 3;
+  public deserializePropertyValueToData(value: DynamicPropertyValue): TendrockDynamicPropertyValue {
+    if (typeof value === 'string' && value.startsWith('[tendrock object]')) {
+      return JSON.parse(value.substring(17)) as TendrockDynamicPropertyValue;
+    } else {
+      return value as TendrockDynamicPropertyValue;
+    }
+  }
+
+  public deserializeDataToInstance(uniqueId: string, value: TendrockDynamicPropertyValue, identifier: string, database: GameObjectDatabase<any>) {
+    if (typeof value !== 'object' || Utils.isVector3(value)) {
+      return value;
+    }
+    const {constructorName} = value;
+    if (typeof constructorName !== 'string') return value;
+    const constructor = ConstructorRegistryImpl.Instance.get(constructorName);
+    if (!constructor) return value;
+    return new constructor(value, {uniqueId, identifier, database}, undefined);
+  }
+
+  public deserializePropertyId(propertyId: string): IdentifierParseResult {
+    if (!this.validatePropertyId(propertyId)) {
+      return {} as IdentifierParseResult;
+    }
+    const dataIdentifier = this.getNonBlockDataId(propertyId);
+    const dataIdSplit = dataIdentifier.split('-');
+    if (dataIdSplit.length === 2) {
+      return {lid: dataIdSplit[0], dataIdentifier: dataIdSplit[1]}
+    } else {
+      return {dataIdentifier};
+    }
   }
 
   public putToWorld(identifier: string, value: TendrockDynamicPropertyValue) {
-    world.setDynamicProperty(this.getDataIdentifier(identifier), Utils.serializeData(value));
+    world.setDynamicProperty(this.serializeNonBlockDataIdToPropertyId(identifier), this.serializeDataToPropertyValue(value));
   }
 
   public putToBlock(blockOrLid: DimensionLocation | string, identifier: string, value: TendrockDynamicPropertyValue) {
-    world.setDynamicProperty(this.getBlockDataIdentifier(blockOrLid, identifier), Utils.serializeData(value));
+    world.setDynamicProperty(this.serializeBlockIdToPropertyId(blockOrLid, identifier), this.serializeDataToPropertyValue(value));
   }
 
   public putToEntity(entity: Entity, identifier: string, value: TendrockDynamicPropertyValue) {
-    entity.setDynamicProperty(this.getDataIdentifier(identifier), Utils.serializeData(value));
+    entity.setDynamicProperty(this.serializeNonBlockDataIdToPropertyId(identifier), this.serializeDataToPropertyValue(value));
   }
 
   public putToItem(item: ItemStack, identifier: string, value: TendrockDynamicPropertyValue) {
-    item.setDynamicProperty(this.getDataIdentifier(identifier), Utils.serializeData(value));
+    item.setDynamicProperty(this.serializeNonBlockDataIdToPropertyId(identifier), this.serializeDataToPropertyValue(value));
   }
 
   public getFromWorld(identifier: string) {
-    return world.getDynamicProperty(this.getDataIdentifier(identifier));
+    return world.getDynamicProperty(this.serializeNonBlockDataIdToPropertyId(identifier));
   }
 
   public getFromBlock(blockOrLid: Block | string, identifier: string) {
-    return world.getDynamicProperty(this.getBlockDataIdentifier(blockOrLid, identifier));
+    return world.getDynamicProperty(this.serializeBlockIdToPropertyId(blockOrLid, identifier));
   }
 }

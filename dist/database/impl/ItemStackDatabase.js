@@ -13,10 +13,10 @@ export class ItemStackDatabase extends GameObjectDatabase {
         }
         this._uid = UniqueIdUtils.getItemUniqueId(itemStack);
         this.itemStack.getDynamicPropertyIds().forEach((propertyId) => {
-            if (!this._dynamicProperty.validateDataIdentifier(propertyId))
+            if (!this._dynamicProperty.validatePropertyId(propertyId))
                 return;
-            const id = this._dynamicProperty.extractDataIdentifier(propertyId);
-            const value = Utils.deserializeData(this.itemStack.getDynamicProperty(propertyId));
+            const id = this._dynamicProperty.getNonBlockDataId(propertyId);
+            const value = this._dynamicProperty.deserializePropertyValueToData(this.itemStack.getDynamicProperty(propertyId));
             this._dataMap.set(id, value);
         });
     }

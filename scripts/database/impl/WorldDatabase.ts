@@ -10,8 +10,8 @@ export class WorldDatabase extends GameObjectDatabase<World> {
     this._uid = 'world@0';
     if (initialIdList) {
       initialIdList.forEach(([propertyId, dataId]) => {
-        const value = Utils.deserializeData(world.getDynamicProperty(propertyId));
-        this._dataMap.set(dataId, Utils.deserializeInstance(this._uid, value, dataId, this) as any);
+        const value =  this._dynamicProperty.deserializePropertyValueToData(world.getDynamicProperty(propertyId));
+        this._dataMap.set(dataId, this._dynamicProperty.deserializeDataToInstance(this._uid, value, dataId, this) as any);
       });
     }
   }

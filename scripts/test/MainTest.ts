@@ -4,6 +4,8 @@ import {DataTest} from "./DataTest";
 
 DataTest.init();
 
+databaseManager.setFlushInterval(6 * 20, false);
+
 world.afterEvents.playerPlaceBlock.subscribe(({block}) => {
   // console.log(block.localizationKey);
   databaseManager.setData(block, 'test:test_id', {

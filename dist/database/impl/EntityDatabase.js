@@ -7,10 +7,10 @@ export class EntityDatabase extends GameObjectDatabase {
         this._entity = _entity;
         this._uid = UniqueIdUtils.getEntityUniqueId(_entity);
         this._entity.getDynamicPropertyIds().forEach((propertyId) => {
-            if (!this._dynamicProperty.validateDataIdentifier(propertyId))
+            if (!this._dynamicProperty.validatePropertyId(propertyId))
                 return;
-            const id = this._dynamicProperty.extractDataIdentifier(propertyId);
-            const value = Utils.deserializeData(this._entity.getDynamicProperty(propertyId));
+            const id = this._dynamicProperty.getNonBlockDataId(propertyId);
+            const value = this._dynamicProperty.deserializePropertyValueToData(this._entity.getDynamicProperty(propertyId));
             this._dataMap.set(id, value);
         });
     }

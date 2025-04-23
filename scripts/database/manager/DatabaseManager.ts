@@ -7,7 +7,7 @@ import {Utils} from "../helper/Utils";
 import {DatabaseTypes} from "../DatabaseTypes";
 import {ConstructorRegistry, ConstructorRegistryImpl} from "../instance/ConstructorRegistry";
 import {LocationUtils} from "@tendrock/location-id";
-import {TendrockDynamicPropertyValue} from "../DynamicPropertySerializer";
+import {DynamicPropertySerializer, TendrockDynamicPropertyValue} from "../DynamicPropertySerializer";
 
 export type Constructor<T> = new (...args: any[]) => T;
 export type GameObjectType = Block | Entity | ItemStack | World | string;
@@ -34,7 +34,7 @@ export class DatabaseManager {
 
   private _isInitialized = false;
   private _autoFlushTaskId: number | undefined;
-  private _flushInterval = 6 * 20;
+  private _flushInterval = 3 * 60 * 20;
   private _autoUpdateSourceEntity = true;
   private _autoFlush = true;
 
@@ -65,7 +65,7 @@ export class DatabaseManager {
 
   private* _loadAndParseWorldDynamicPropertiesGenerator(): Generator<void, void, void> {
     for (const id of world.getDynamicPropertyIds()) {
-      const {lid, dataIdentifier} = Utils.parseIdentifier(id);
+      const {lid, dataIdentifier} = DynamicPropertySerializer.Instance.deserializePropertyId(id);
       if (lid) {
         this._addBlockDataId(lid, id, dataIdentifier);
       } else {

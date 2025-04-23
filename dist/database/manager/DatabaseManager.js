@@ -15,13 +15,14 @@ import { Utils } from "../helper/Utils";
 import { DatabaseTypes } from "../DatabaseTypes";
 import { ConstructorRegistryImpl } from "../instance/ConstructorRegistry";
 import { LocationUtils } from "@tendrock/location-id";
+import { DynamicPropertySerializer } from "../DynamicPropertySerializer";
 export class DatabaseManager {
     constructor() {
         this._databaseManagerMap = new Map();
         this._eventCallbackMap = new SetMap();
         this._changingEntityDatabaseBuffer = new Map();
         this._isInitialized = false;
-        this._flushInterval = 6 * 20;
+        this._flushInterval = 3 * 60 * 20;
         this._autoUpdateSourceEntity = true;
         this._autoFlush = true;
         this._blockDatabaseMap = new Map();
@@ -44,7 +45,7 @@ export class DatabaseManager {
     }
     *_loadAndParseWorldDynamicPropertiesGenerator() {
         for (const id of world.getDynamicPropertyIds()) {
-            const { lid, dataIdentifier } = Utils.parseIdentifier(id);
+            const { lid, dataIdentifier } = DynamicPropertySerializer.Instance.deserializePropertyId(id);
             if (lid) {
                 this._addBlockDataId(lid, id, dataIdentifier);
             }

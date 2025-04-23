@@ -1,4 +1,6 @@
 import { Block, DimensionLocation, Entity, ItemStack, Vector3 } from "@minecraft/server";
+import { IdentifierParseResult } from "./helper/Utils";
+import { GameObjectDatabase } from "./GameObjectDatabase";
 export type DynamicPropertyValue = boolean | number | string | Vector3 | undefined;
 export type DynamicPropertyObjectValue = {
     [key: string]: DynamicPropertyValue | DynamicPropertyObjectValue;
@@ -8,12 +10,16 @@ export declare class DynamicPropertySerializer {
     static TendrockPropertyIdPrefix: string;
     static Instance: DynamicPropertySerializer;
     protected constructor();
-    getDataIdentifier(identifier: string): string;
-    getBlockDataIdentifier(locationOrLid: DimensionLocation | string, identifier: string): string;
-    extractDataIdentifier(dataIdentifier: string): string;
-    extractBlockDataIdentifier(block: Block | string, dataIdentifier: string): string;
-    validateDataIdentifier(identifier: string): boolean;
-    validateBlockDataIdentifier(identifier: string): boolean;
+    serializeNonBlockDataIdToPropertyId(identifier: string): string;
+    serializeBlockIdToPropertyId(locationOrLid: DimensionLocation | string, identifier: string): string;
+    validatePropertyId(propertyId: string): boolean;
+    validateBlockPropertyId(propertyId: string): boolean;
+    getNonBlockDataId(propertyId: string): string;
+    getBlockDataId(block: Block | string, propertyId: string): string;
+    serializeDataToPropertyValue(value: TendrockDynamicPropertyValue): DynamicPropertyValue;
+    deserializePropertyValueToData(value: DynamicPropertyValue): TendrockDynamicPropertyValue;
+    deserializeDataToInstance(uniqueId: string, value: TendrockDynamicPropertyValue, identifier: string, database: GameObjectDatabase<any>): unknown;
+    deserializePropertyId(propertyId: string): IdentifierParseResult;
     putToWorld(identifier: string, value: TendrockDynamicPropertyValue): void;
     putToBlock(blockOrLid: DimensionLocation | string, identifier: string, value: TendrockDynamicPropertyValue): void;
     putToEntity(entity: Entity, identifier: string, value: TendrockDynamicPropertyValue): void;
